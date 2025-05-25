@@ -27,6 +27,7 @@
     { "src": "/sepet.php", "dest": "/api/sepet.php" },
 
     { "src": "/", "dest": "/api/index.php" },
+
     { "src": "/(.*)", "dest": "/api/index.php" }
   ]
 }
