@@ -1,5 +1,17 @@
 <?php
-require_once 'config.php';
+require_once 'config.php'; // session_start() burada olmalı veya config.php içinde çağrılmalı
+
+// === YENİ EKLENEN KISIM BAŞLANGICI ===
+// Kullanıcı zaten giriş yapmış mı diye kontrol et
+// $_SESSION['user_id'] veya $_SESSION['logged_in'] gibi bir session değişkeni
+// login_process.php dosyanızda başarılı giriş sonrası oluşturulmalıdır.
+if (isset($_SESSION['user_id'])) { // VEYA if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true)
+    header('Location: dashboard.php'); // Giriş yapmış kullanıcıyı dashboard'a yönlendir
+    exit; // Yönlendirmeden sonra scriptin çalışmasını durdur
+}
+// === YENİ EKLENEN KISIM SONU ===
+
+// Buradan sonrası sizin mevcut login.php kodunuz...
 include 'products_data.php'; // Eğer kullanılıyorsa
 $cart_item_count = 0;
 if (function_exists('get_cart_count')) {
@@ -17,7 +29,7 @@ unset($_SESSION['error_message'], $_SESSION['success_message']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Giriş Yap - AŞIKZADE</title>
     <style>
-        /* Önceki cevaptaki tüm CSS stilleri buraya gelecek */
+        /* SİZİN MEVCUT CSS STİLLERİNİZ BURADA DEVAM EDECEK */
         /* ... (Stilleri buraya kopyalayın) ... */
         :root {
             --product-bg-text-light: rgba(255, 255, 255, 0.18);
@@ -37,7 +49,7 @@ unset($_SESSION['error_message'], $_SESSION['success_message']);
             --login-input-bg: #FFFFFF;
             --login-input-border: #DDDDDD;
             --login-button-bg: #7fb3ec;
-            --login-button-text: #000000;
+            --login-button-text: #000000; /* Siyah yazı olarak değiştirilmişti, orijinali #FFFFFF olabilir */
             --login-button-hover-bg: #6aa3e0;
 
             --message-error-bg: #f8d7da;
@@ -86,7 +98,8 @@ unset($_SESSION['error_message'], $_SESSION['success_message']);
         .signup-link a:hover { text-decoration: underline; color: var(--asikzade-dark-green); }
 
         .footer { background-color: var(--asikzade-content-bg); padding: 60px 0 30px; position: relative; z-index: 20; color: var(--asikzade-dark-text); border-top: none; margin-top: auto; }
-        .footer-content { max-width: 1200px; margin: 0 auto; padding: 0 50px; }
+        /* ... (Mevcut footer ve responsive CSS stilleriniz devam edecek) ... */
+         .footer-content { max-width: 1200px; margin: 0 auto; padding: 0 50px; }
         .footer-social-row { display: flex; justify-content: center; margin-bottom: 40px; }
         .social-icons { display: flex; gap: 25px; }
         .social-icons a { width: 48px; height: 48px; background-color: var(--asikzade-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; border: none; box-shadow: 0 3px 6px rgba(0,0,0,0.12); }
@@ -111,9 +124,12 @@ unset($_SESSION['error_message'], $_SESSION['success_message']);
 </head>
 <body>
     <header class="header" id="mainHeader">
+        <!-- SİZİN MEVCUT HEADER HTML'İNİZ DEVAM EDECEK -->
         <div class="logo-container">
-            <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo" id="headerLogoImage">
-            <span class="logo-text" id="siteLogoTextMawa">AŞIKZADE</span>
+             <a href="index.php" style="display: flex; align-items: center; text-decoration: none;">
+                <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo" id="headerLogoImage">
+                <span class="logo-text" id="siteLogoTextMawa">AŞIKZADE</span>
+            </a>
         </div>
         <nav class="main-nav">
             <div class="user-actions-group">
@@ -138,6 +154,7 @@ unset($_SESSION['error_message'], $_SESSION['success_message']);
     </header>
 
     <main class="login-page-wrapper">
+        <!-- SİZİN MEVCUT MAİN HTML'İNİZ DEVAM EDECEK -->
         <div class="login-form-container">
             <h1>GİRİŞ YAP</h1>
 
@@ -170,12 +187,13 @@ unset($_SESSION['error_message'], $_SESSION['success_message']);
     </main>
 
     <footer class="footer">
+         <!-- SİZİN MEVCUT FOOTER HTML'İNİZ DEVAM EDECEK -->
          <div class="footer-content">
             <div class="footer-social-row">
                 <div class="social-icons">
                     <a href="https://facebook.com/asikzadenatural" target="_blank" aria-label="Facebook"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2.039c-5.514 0-9.961 4.448-9.961 9.961s4.447 9.961 9.961 9.961c5.515 0 9.961-4.448 9.961-9.961s-4.446-9.961-9.961-9.961zm3.621 9.561h-2.2v7.3h-3.22v-7.3h-1.56v-2.68h1.56v-1.93c0-1.301.63-3.35 3.35-3.35h2.37v2.67h-1.45c-.47 0-.72.24-.72.72v1.31h2.24l-.24 2.68z"/></svg></a>
                     <a href="https://linkedin.com/company/asikzadenatural" target="_blank" aria-label="LinkedIn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14zm-11.383 7.125H5.121v6.75h2.496v-6.75zm-1.248-2.302a1.49 1.49 0 1 0 0-2.979 1.49 1.49 0 0 0 0 2.979zm9.016 2.302c-2.016 0-2.848 1.081-3.312 2.04h-.048v-1.788H9.573v6.75h2.496v-3.375c0-.891.171-1.755 1.26-1.755.972 0 1.088.687 1.088 1.809v3.321h2.496v-3.828c0-2.203-1.088-3.852-3.288-3.852z"/></svg></a>
-                    <a href="https://instagram.com/asikzadenatural" target="_blank" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c2.717 0 3.056.01 4.122.06 1.065.05 1.79.217 2.428.465.66.254 1.217.598 1.77.96.582.386.96.826 1.344 1.344.385.517.778 1.074 1.032 1.734.272.712.436 1.436.488 2.498.052 1.066.063 1.405.063 4.122s-.01 3.056-.061 4.122c-.053 1.065-.218 1.79-.487 2.428-.254.66-.598 1.217-.96 1.77-.386.582-.826.96-1.344 1.344-.517.385-1.074.778-1.734 1.032-.712.272-1.436.436-2.498.488-1.066.052-1.405.063-4.122.063s-3.056-.01-4.122-.061c-1.065-.053-1.79-.218-2.428-.487-.66-.254-1.217-.598-1.77-.96-.582-.386-.96-.826-1.344-1.344-.385-.517-.778-1.074-1.032-1.734-.272-.712-.436-1.436-.488-2.498C2.012 15.056 2 14.717 2 12s.01-3.056.061-4.122c.053-1.065.218-1.79.487-2.428.254.66.598-1.217.96-1.77.386-.582.826.96 1.344-1.344.517-.385 1.074-.778 1.734-1.032.712-.272 1.436.436 2.498-.488C8.944 2.01 9.283 2 12 2zm0 1.802c-2.67 0-2.987.01-4.042.058-.975.045-1.505.207-1.857.344-.466.182-.795.396-1.15.748-.354.354-.566.684-.748 1.15-.137.352-.3.882-.344 1.857-.048 1.054-.058 1.373-.058 4.042s.01 2.987.058 4.042c.045.975.207 1.505.344 1.857.182.466.396.795.748 1.15.354.354.684.566 1.15.748.352.137.882.3 1.857.344 1.054.048 1.373.058 4.042.058s2.987-.01 4.042-.058c.975-.045 1.505-.207 1.857-.344.466-.182.795.396 1.15-.748.354.354-.566-.684.748 1.15.137-.352-.3-.882-.344-1.857.048-1.054.058-1.373.058-4.042s-.01-2.987-.058-4.042c-.045-.975-.207-1.505-.344-1.857-.182-.466-.396-.795-.748-1.15-.354-.354-.684-.566-1.15-.748-.352-.137-.882-.3-1.857-.344C14.987 3.812 14.67 3.802 12 3.802zm0 2.903c-2.836 0-5.135 2.299-5.135 5.135s2.299 5.135 5.135 5.135 5.135-2.299 5.135-5.135-2.299-5.135-5.135-5.135zm0 8.468c-1.837 0-3.333-1.496-3.333-3.333s1.496-3.333 3.333-3.333 3.333 1.496 3.333 3.333-1.496 3.333-3.333 3.333zm4.333-8.572a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4z"/></svg></a>
+                    <a href="https://instagram.com/asikzadenatural" target="_blank" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c2.717 0 3.056.01 4.122.06 1.065.05 1.79.217 2.428.465.66.254 1.217.598 1.77.96.582.386.96.826 1.344 1.344.385.517.778 1.074 1.032 1.734.272.712.436 1.436.488 2.498.052 1.066.063 1.405.063 4.122s-.01 3.056-.061 4.122c-.053 1.065-.218 1.79-.487 2.428-.254.66-.598 1.217-.96 1.77-.386.582-.826.96-1.344 1.344-.517.385-1.074.778-1.734 1.032-.712.272-1.436.436-2.498.488-1.066.052-1.405.063-4.122.063s-3.056-.01-4.122-.061c-1.065-.053-1.79-.218-2.428-.487-.66-.254-1.217-.598-1.77-.96-.582-.386-.96-.826-1.344-1.344-.385-.517-.778-1.074-1.032-1.734-.272-.712-.436-1.436-.488-2.498C2.012 15.056 2 14.717 2 12s.01-3.056.061-4.122c.053-1.065.218-1.79.487-2.428.254.66.598-1.217.96-1.77.386-.582.826.96 1.344-1.344.517-.385 1.074-.778 1.734-1.032.712-.272 1.436.436 2.498-.488C8.944 2.01 9.283 2 12 2zm0 1.802c-2.67 0-2.987.01-4.042.058-.975.045-1.505.207-1.857.344-.466.182-.795.396-1.15.748-.354.354-.566.684-.748 1.15-.137.352-.3.882-.344 1.857-.048 1.054-.058 1.373-.058 4.042s.01 2.987.058 4.042c.045.975.207 1.505.344 1.857.182.466.396.795.748 1.15.354.354.684.566 1.15.748.352.137.882.3 1.857.344 1.054.048 1.373.058 4.042.058s2.987-.01 4.042-.058c.975-.045 1.505-.207 1.857-.344.466-.182-.795.396 1.15-.748.354-.354-.566-.684.748-1.15.137-.352-.3-.882-.344-1.857.048-1.054.058-1.373.058-4.042s-.01-2.987-.058-4.042c-.045-.975-.207-1.505-.344-1.857-.182-.466-.396-.795-.748-1.15-.354-.354-.684-.566-1.15-.748-.352-.137-.882-.3-1.857-.344C14.987 3.812 14.67 3.802 12 3.802zm0 2.903c-2.836 0-5.135 2.299-5.135 5.135s2.299 5.135 5.135 5.135 5.135-2.299 5.135-5.135-2.299-5.135-5.135-5.135zm0 8.468c-1.837 0-3.333-1.496-3.333-3.333s1.496-3.333 3.333-3.333 3.333 1.496 3.333 3.333-1.496 3.333-3.333 3.333zm4.333-8.572a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4z"/></svg></a>
                 </div>
             </div>
             <div class="footer-bottom">
@@ -189,5 +207,8 @@ unset($_SESSION['error_message'], $_SESSION['success_message']);
             </div>
         </div>
     </footer>
+    <script>
+        // İsteğe bağlı: Form validasyonu veya diğer JS işlemleri
+    </script>
 </body>
 </html>

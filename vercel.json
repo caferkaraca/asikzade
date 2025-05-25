@@ -5,31 +5,28 @@
     }
   },
   "routes": [
-  
-    { "src": "/bilet_pdf.php", "dest": "/api/bilet_pdf.php" },
-    { "src": "/sites1.php", "dest": "/api/sites1.php" },
-    { "src": "/sites2.php", "dest": "/api/sites2.php" },
-    { "src": "/sites3.php", "dest": "/api/sites3.php" },
+    { "src": "/admin_config.php", "dest": "/api/admin_config.php" },
+    { "src": "/admin_dashboard.php", "dest": "/api/admin_dashboard.php" },
+    { "src": "/admin_login_process.php", "dest": "/api/admin_login_process.php" },
+    { "src": "/admin_login.php", "dest": "/api/admin_login.php" },
+    { "src": "/anasayfa.php", "dest": "/api/anasayfa.php" },
+    { "src": "/cart_action.php", "dest": "/api/cart_action.php" },
+    { "src": "/config.php", "dest": "/api/config.php" },
     { "src": "/dashboard.php", "dest": "/api/dashboard.php" },
-    { "src": "/get_hall_status.php", "dest": "/api/get_hall_status.php" },
-    { "src": "/index.php", "dest": "/api/index.php" }, 
-    { "src": "/koltuk_sec.php", "dest": "/api/koltuk_sec.php" },
+    { "src": "/get_order_details.php", "dest": "/api/get_order_details.php" },
+    { "src": "/index.php", "dest": "/api/index.php" },
+    { "src": "/login_process.php", "dest": "/api/login_process.php" },
     { "src": "/login.php", "dest": "/api/login.php" },
     { "src": "/logout.php", "dest": "/api/logout.php" },
-    { "src": "/odeme_simulasyon.php", "dest": "/api/odeme_simulasyon.php" },
-    { "src": "/oyun_detay.php", "dest": "/api/oyun_detay.php" },
-    { "src": "/oyun_duzenle.php", "dest": "/api/oyun_duzenle.php" },
-    { "src": "/purchase_handler.php", "dest": "/api/purchase_handler.php" },
+    { "src": "/odeme_process.php", "dest": "/api/odeme_process.php" },
+    { "src": "/odeme.php", "dest": "/api/odeme.php" },
+    { "src": "/product_detail.php", "dest": "/api/product_detail.php" },
+    { "src": "/products_data.php", "dest": "/api/products_data.php" },
+    { "src": "/register_process.php", "dest": "/api/register_process.php" },
     { "src": "/register.php", "dest": "/api/register.php" },
-    { "src": "/satin_alma_islemi.php", "dest": "/api/satin_alma_islemi.php" },
-
-  
-    { "src": "/signup.php", "dest": "/api/signup.php" }, 
-    { "src": "/admin.php", "dest": "/api/admin.php" },   
-
+    { "src": "/sepet.php", "dest": "/api/sepet.php" },
 
     { "src": "/", "dest": "/api/index.php" },
-
     { "src": "/(.*)", "dest": "/api/index.php" }
   ]
 }

@@ -10,7 +10,7 @@ $products = [
         'price' => 120.00,
         'dynamicBgClass' => "bg-product1-custom",
         'productNameBgTextType' => "light",
-        'description' => 'Tamamen organik Şiraz üzümlerinden elde edilen Aşıkzade Organik Şıraz Özü, doğal tatlılığı ve zengin besin içeriğiyle öne çıkar. Antioksidanlar açısından zengin olan şıraz özü, enerji verir ve bağışıklık sistemini destekler. Kahvaltılarda, tatlılarda veya sağlıklı içeceklerde kullanabileceğiniz bu özel ürün, katkısız ve şeker ilavesizdir.', // Added
+        'description' => 'Aşıkzade Natural’ın özenle ürettiği organik Şiraz üzümü özü, doğal içeriği ve yüksek antioksidan değeriyle sağlıklı yaşamı destekleyen güçlü bir takviyedir. Şiraz üzümünde doğal olarak bulunan resveratrol ve flavonoidler, vücutta serbest radikallerle savaşarak hücre yenilenmesini destekler ve bağışıklık sistemini güçlendirir. Kalp ve damar sağlığına katkı sağladığı bilinen bu doğal öz, düzenli kullanımda enerji seviyesini artırabilir ve metabolizmayı dengede tutmaya yardımcı olabilir. Aynı zamanda sindirimi kolaylaştırıcı etkileriyle mide sağlığını desteklerken, cildin daha canlı ve sağlıklı görünmesine de katkıda bulunur. Katkı maddesi içermeyen saf formülüyle Aşıkzade Natural Şiraz üzümü özü, doğadan gelen şifayı günlük rutininize dahil etmenin en doğal yoludur.', // Added
         'badge_image' => 'https://i.imgur.com/vLKmF3N.png' // Added - generic badge, change if needed
     ],
     2 => [
@@ -21,7 +21,7 @@ $products = [
         'price' => 135.00,
         'dynamicBgClass' => "bg-product2-custom",
         'productNameBgTextType' => "dark",
-        'description' => 'Aşıkzade Şiraz Özlü Alıç Özü, şifalı alıç meyvesinin faydalarını geleneksel şıraz özü ile birleştirir. Kalp ve damar sağlığını destekleyici özellikleriyle bilinen alıç, bu özel formülasyonla lezzetli ve sağlıklı bir alternatif sunar. Doğal yöntemlerle hazırlanmış, katkısız bir üründür.', // Added
+        'description' => 'Aşıkzade’nin özenle formüle ettiği Alıçlı Şiraz Üzümü Özü, iki güçlü bitkisel içeriğin birleşimiyle kalp ve damar sağlığına doğal destek sunar. Şiraz üzümünün zengin antioksidan profili, özellikle resveratrol sayesinde hücre yenilenmesini desteklerken, alıç meyvesi kalp ritmini düzenlemeye ve tansiyonu dengelemeye yardımcı olur. Bu doğal öz, dolaşım sistemini güçlendirmek, bağışıklığı artırmak ve vücutta oluşan stresin etkilerini hafifletmek isteyenler için ideal bir tercihtir. Aynı zamanda sindirim sistemine dost olan bu karışım, yorgunluk ve halsizlik gibi günlük şikâyetlerin giderilmesinde de destekleyici rol oynar. Şeker ilavesiz, katkısız ve tamamen doğal içeriğiyle Aşıkzade Natural Alıçlı Şiraz Üzümü Özü, doğanın kalpten gelen iyiliğini sofralarınıza taşır.', // Added
         'badge_image' => 'https://i.imgur.com/vLKmF3N.png' // Added
     ],
     3 => [
@@ -32,7 +32,7 @@ $products = [
         'price' => 150.00,
         'dynamicBgClass' => "bg-product3-custom",
         'productNameBgTextType' => "light",
-        'description' => 'Özel olarak formüle edilmiş Aşıkzade Diyabetik Şiraz Özü, şeker hastalarının da güvenle tüketebileceği doğal bir tatlandırıcı ve enerji kaynağıdır. Düşük glisemik indeksi ile kan şekerini dengede tutmaya yardımcı olurken, şıraz üzümünün tüm faydalarını sunar.', // Added
+        'description' => 'Aşıkzade’nin diyabetik bireyler için özel olarak geliştirdiği Şiraz üzümü özü, doğal içeriği ve düşük glisemik etkisiyle kan şekeri dengesini desteklemeye yardımcı olur. İçeriğindeki güçlü antioksidanlar, özellikle de resveratrol ve polifenoller, hücreleri oksidatif strese karşı korurken metabolizmayı dengeleyici etkiler sunar. Tatlandırıcı ya da rafine şeker içermeyen bu özel formül, hem bağışıklık sistemini destekler hem de enerji seviyelerini doğal yoldan artırır. Kalp sağlığını korumaya katkıda bulunan ve sindirim sistemini destekleyen yapısıyla, diyabetli bireylerin günlük yaşamlarında güvenle kullanabilecekleri doğal bir destektir. Aşıkzade Natural Diyabetik Şiraz Üzümü Özü, sağlığına dikkat edenler için doğadan gelen dengeli ve lezzetli bir çözümdür.', // Added
         'badge_image' => 'https://i.imgur.com/vLKmF3N.png' // Added
     ],
     4 => [
@@ -43,7 +43,7 @@ $products = [
         'price' => 90.00,
         'dynamicBgClass' => "bg-product4-custom",
         'productNameBgTextType' => "dark",
-        'description' => 'Aşıkzade Kayısı Pekmezi, güneşte olgunlaşmış doğal kayısılardan üretilerek hem lezzeti hem de besin değeriyle öne çıkar. Yüksek lif içeriği sayesinde sindirim sistemini düzenlemeye yardımcı olurken, özellikle kabızlık sorunu yaşayanlar için doğal bir destek sunar. Potasyum, demir ve A vitamini bakımından zengindir.', // Added
+        'description' => 'Aşıkzade Kayısı Pekmezi, güneşte olgunlaşmış doğal kayısılardan üretilerek hem lezzeti hem de besin değeriyle öne çıkar. Yüksek lif içeriği sayesinde sindirim sistemini düzenlemeye yardımcı olurken, özellikle kabızlık sorunu yaşayanlar için doğal bir destek sunar. Potasyum, demir ve A vitamini bakımından zengin olan kayısı pekmezi, bağışıklık sistemini güçlendirir ve cilt sağlığını destekler. Enerji verici özelliğiyle çocuklardan yetişkinlere kadar herkesin günlük beslenmesinde yer alabilecek sağlıklı bir alternatiftir. Katkı maddesi ve ilave şeker içermeyen formülüyle Aşıkzade Natural Kayısı Pekmezi, doğallığı ön planda tutanlar için hem şifa hem de lezzet kaynağıdır.', // Added
         'badge_image' => 'https://i.imgur.com/vLKmF3N.png' // Added
     ],
     // You can add other products here with all the fields:

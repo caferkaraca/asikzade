@@ -589,8 +589,8 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
                     <div class="product-image-wrapper">
                         <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>" class="main-product-image">
                         <?php if (!empty($product['badge_image'])): ?>
-                        <div class="product-badge">
-                            <img src="<?php echo htmlspecialchars($product['badge_image']); ?>" alt="Ürün Rozeti">
+                        <div class="product-badge" style="width:220px; height:220px; bottom:-60px; right:-60px; position:absolute;">
+                            <img src="https://i.imgur.com/RChLL2F.png" alt="Ürün Rozeti" style="width:100%; height:100%; object-fit:contain;">
                         </div>
                         <?php endif; ?>
                     </div>
@@ -599,11 +599,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
                             <?php echo nl2br(htmlspecialchars($product['description'])); ?>
                         </div>
 
-                        <div class="product-page-actions">
-                            <a href="index.php#asikzade-about" class="action-button">HAKKIMIZDA</a>
-                            <a href="index.php#asikzade-benefits" class="action-button">FAYDALARINI İNCELE</a>
-                            <a href="index.php#asikzade-products" class="action-button">ÜRÜNLERİ KEŞFET</a>
-                        </div>
+
                         
                         <div class="product-price-stock">
                             <p class="product-price"><?php echo number_format($product['price'], 2); ?> TL</p>
