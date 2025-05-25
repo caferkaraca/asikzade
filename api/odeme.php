@@ -7,19 +7,20 @@ include 'products_data.php'; // $products dizisini sağlar
 // 1. KULLANICI GİRİŞ KONTROLÜ VE TEMEL BİLGİLERİNİ ALMA (Cookie ile)
 $user_logged_in = false;
 $user_id_from_cookie = null;
-$user_ad_form = ''; // Form için varsayılan boş değer
-$user_soyad_form = '';
-$user_email_form = '';
-// Adres ve telefon bilgileri cookie'den okunmayacak, kullanıcı dolduracak.
-// Formda gösterilecek varsayılan/placeholder değerleri belirleyebiliriz.
+$user_ad_form_value = ''; // Form için value (cookie'den gelecek)
+$user_soyad_form_value = ''; // Form için value (cookie'den gelecek)
+$user_email_form_value = ''; // Form için value (cookie'den gelecek)
+
+// Adres ve telefon bilgileri için placeholder'lar, value'lar boş olacak
 $user_telefon_placeholder = '05XX XXX XX XX';
 $user_adres_satiri1_placeholder = 'Mahalle, Cadde, Sokak ve No';
 $user_adres_satiri2_placeholder = 'Bina adı, kat, daire numarası';
-$user_sehir_value = 'Aydın'; // Varsayılan veya boş olabilir
-$user_ilce_value = 'Efeler';  // Varsayılan veya boş olabilir
-$user_postakodu_value = '09100'; // Varsayılan veya boş olabilir
+// Şehir, ilçe, posta kodu için formda varsayılan value'lar kullanılabilir veya placeholder
+$user_sehir_form_value = 'Aydın'; // İsterseniz boş bırakıp placeholder kullanabilirsiniz
+$user_ilce_form_value = 'Efeler';
+$user_postakodu_form_value = '09100';
 
-$user_cookie_name = 'asikzade_user_session'; // login_process.php'de kullanıcı için tanımlanan cookie adı
+$user_cookie_name = 'asikzade_user_session'; // login_process.php'de tanımlanan cookie adı
 
 if (isset($_COOKIE[$user_cookie_name])) {
     $user_data_json = $_COOKIE[$user_cookie_name];
@@ -28,10 +29,10 @@ if (isset($_COOKIE[$user_cookie_name])) {
     if ($user_data && isset($user_data['user_id'])) {
         $user_logged_in = true;
         $user_id_from_cookie = $user_data['user_id'];
-        $user_ad_form = $user_data['ad'] ?? '';
-        $user_soyad_form = $user_data['soyad'] ?? '';
-        $user_email_form = $user_data['email'] ?? '';
-        // Telefon ve adres cookie'de olmadığı için burada okunmuyor.
+        $user_ad_form_value = $user_data['ad'] ?? ''; // Cookie'den ad
+        $user_soyad_form_value = $user_data['soyad'] ?? ''; // Cookie'den soyad
+        $user_email_form_value = $user_data['email'] ?? ''; // Cookie'den e-posta
+        // Telefon ve adres bilgileri cookie'de saklanmıyor (isteğinize göre)
     }
 }
 
@@ -60,8 +61,8 @@ if (isset($_COOKIE['asikzade_cart'])) {
 
 $cart_contents_summary = [];
 $sub_total_summary = 0;
-$shipping_cost = 50.00; // Kargo ücreti
-$estimated_taxes = 0;   // Tahmini vergiler (KDV)
+$shipping_cost = 50.00;
+$estimated_taxes = 0;
 
 if (isset($_COOKIE['asikzade_cart'])) {
     $cart_cookie_data = json_decode($_COOKIE['asikzade_cart'], true);
@@ -86,7 +87,6 @@ if (isset($_COOKIE['asikzade_cart'])) {
 }
 
 if (empty($cart_contents_summary)) {
-    // Sepet boşsa, sepet.php'ye yönlendir ve URL'ye mesaj ekle
     $sepet_redirect_params = [
         'info_msg' => urlencode("Ödeme yapabilmek için sepetinizde ürün bulunmalıdır.")
     ];
@@ -94,17 +94,14 @@ if (empty($cart_contents_summary)) {
     exit;
 }
 
-// KDV oranı (Örnek: %20)
-$kdv_orani = 0.20; // İhtiyacınıza göre güncelleyin
+$kdv_orani = 0.20;
 $estimated_taxes = $sub_total_summary * $kdv_orani;
 $grand_total_summary = $sub_total_summary + $shipping_cost + $estimated_taxes;
 
-// URL'den ödeme işlemi sonrası hata mesajını al (odeme_process.php'den gelebilir)
 $error_message_odeme = null;
 if (isset($_GET['error_msg_odeme'])) {
     $error_message_odeme = htmlspecialchars(urldecode($_GET['error_msg_odeme']));
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -113,7 +110,7 @@ if (isset($_GET['error_msg_odeme'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ödeme - AŞIKZADE</title>
     <style>
-        /* STİL KODLARI DEĞİŞMEDEN AYNI KALACAK */
+        /* STİL KODLARI DEĞİŞMEDEN AYNI KALACAK (önceki cevapta verildiği gibi) */
         :root {
             --asikzade-content-bg: #fef6e6;
             --asikzade-green: #8ba86d;
@@ -307,7 +304,7 @@ if (isset($_GET['error_msg_odeme'])) {
                 
                 <div class="contact-info section-block">
                     <h2 class="section-title">İletişim</h2>
-                    <p><span class="label">Hesap:</span> <span class="value"><?php echo htmlspecialchars($user_email_form); ?></span></p>
+                    <p><span class="label">Hesap:</span> <span class="value"><?php echo htmlspecialchars($user_email_form_value); ?></span></p>
                      <p style="margin-top: 5px; font-size: 0.9rem;"><a href="logout.php" style="color:var(--asikzade-green); text-decoration: none;">Çıkış Yap</a></p>
                 </div>
 
@@ -322,11 +319,11 @@ if (isset($_GET['error_msg_odeme'])) {
                     <div class="form-row">
                         <div class="form-group">
                             <label for="first_name">Ad</label>
-                            <input type="text" id="first_name" name="ad" value="<?php echo htmlspecialchars($user_ad_form); ?>" required>
+                            <input type="text" id="first_name" name="ad" value="<?php echo htmlspecialchars($user_ad_form_value); ?>" required>
                         </div>
                         <div class="form-group">
                             <label for="last_name">Soyad</label>
-                            <input type="text" id="last_name" name="soyad" value="<?php echo htmlspecialchars($user_soyad_form); ?>" required>
+                            <input type="text" id="last_name" name="soyad" value="<?php echo htmlspecialchars($user_soyad_form_value); ?>" required>
                         </div>
                     </div>
                     <div class="form-group">
@@ -340,15 +337,15 @@ if (isset($_GET['error_msg_odeme'])) {
                     <div class="form-row">
                         <div class="form-group">
                             <label for="city">Şehir</label>
-                            <input type="text" id="city" name="sehir" value="<?php echo htmlspecialchars($user_sehir_value); ?>" required>
+                            <input type="text" id="city" name="sehir" value="<?php echo htmlspecialchars($user_sehir_form_value); ?>" required>
                         </div>
                         <div class="form-group">
                             <label for="province">İlçe</label>
-                             <input type="text" id="province" name="ilce" value="<?php echo htmlspecialchars($user_ilce_value); ?>" required>
+                             <input type="text" id="province" name="ilce" value="<?php echo htmlspecialchars($user_ilce_form_value); ?>" required>
                         </div>
                         <div class="form-group">
                             <label for="postal_code">Posta Kodu</label>
-                            <input type="text" id="postal_code" name="posta_kodu" value="<?php echo htmlspecialchars($user_postakodu_value); ?>" required>
+                            <input type="text" id="postal_code" name="posta_kodu" value="<?php echo htmlspecialchars($user_postakodu_form_value); ?>" required>
                         </div>
                     </div>
                      <div class="form-group">
@@ -394,7 +391,7 @@ if (isset($_GET['error_msg_odeme'])) {
                             </div>
                             <div class="form-group">
                                 <label for="card_name" style="display:none;">Kart Üzerindeki İsim</label>
-                                <input type="text" id="card_name" name="card_name" placeholder="Kart üzerindeki isim" value="<?php echo htmlspecialchars($user_ad_form . ' ' . $user_soyad_form); ?>" required>
+                                <input type="text" id="card_name" name="card_name" placeholder="Kart üzerindeki isim" value="<?php echo htmlspecialchars($user_ad_form_value . ' ' . $user_soyad_form_value); ?>" required>
                             </div>
                              <label class="checkbox-group">
                                 <input type="checkbox" name="use_shipping_as_billing" checked> Fatura adresi olarak teslimat adresini kullan
@@ -498,4 +495,4 @@ if (isset($_GET['error_msg_odeme'])) {
         });
     </script>
 </body>
-</html>
+</html> 
