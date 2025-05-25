@@ -9,15 +9,16 @@
     { "src": "/test_debug.php", "dest": "/api/test_debug.php" },
 
     { "src": "/(?<filename>[^/]+\\.php)$", "dest": "/api/$filename" },
-
-    { "src": "/(.*)", "dest": "/api/index.php" } 
+ 
+    { "src": "/(.*)", "dest": "/api/index.php" }
   ],
   "build": {
     "env": {
-      "NOW_PHP_DEBUG": "1"
+      "NOW_PHP_DEBUG": "1",
+      "PHP_INI_SCAN_DIR": "/var/task/user/conf.d" 
     }
   },
-  "env": { 
-    "PHP_INI_SCAN_DIR": "/var/task/user/conf.d" 
+  "env": {
+    "PHP_INI_SCAN_DIR": "/var/task/user/conf.d"
   }
 }
