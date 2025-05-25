@@ -1,16 +1,9 @@
 <?php
-require_once 'config.php'; // Sadece session_start() için
+ob_start();
+// Cookie'yi sil (geçmiş bir zamana ayarlayarak)
+setcookie("asikzade_user_session", "", time() - 3600, "/");
 
-// PHP session'ını temizle
-$_SESSION = array(); // Session değişkenlerini boşalt
-if (ini_get("session.use_cookies")) {
-    $params = session_get_cookie_params();
-    setcookie(session_name(), '', time() - 42000,
-        $params["path"], $params["domain"],
-        $params["secure"], $params["httponly"]
-    );
-}
-session_destroy();
-
-  header('Location: /login.php');
+header('Location: /login.php'); // Yolları / ile başlatın
+ob_end_flush();
 exit;
+?>
