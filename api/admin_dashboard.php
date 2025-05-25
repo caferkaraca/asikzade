@@ -686,27 +686,56 @@ document.addEventListener('DOMContentLoaded', function () {
                             detailsHtml += '<div style="overflow-x:auto;"><table class="modal-order-items-table"><thead><tr><th></th><th>Ürün Adı</th><th>Miktar</th><th>Birim Fiyat</th><th>Ara Toplam</th></tr></thead><tbody>';
                             
                             const productsData = <?php echo isset($products) && is_array($products) ? json_encode($products) : '{}'; ?>;
+// ... fetch(...).then(data => { ... if (data.items && data.items.length > 0) { ...
+data.items.forEach(item => {
+    let imageUrl = 'https://via.placeholder.com/50/e9ecef/6c757d?text=?';
+    const itemNameFromOrder = item.urun_adi ? String(item.urun_adi).trim() : null;
 
-                            data.items.forEach(item => {
-                                let imageUrl = 'https://via.placeholder.com/50/e9ecef/6c757d?text=?'; // Varsayılan placeholder
-                                if (productsData && item.urun_id && productsData[item.urun_id]) { 
-                                    imageUrl = productsData[item.urun_id].image || productsData[item.urun_id].hero_image || imageUrl;
-                                } else if (productsData && item.urun_adi) { 
-                                     for (const key in productsData) {
-                                        if (productsData.hasOwnProperty(key) && productsData[key].name === item.urun_adi) {
-                                            imageUrl = productsData[key].image || productsData[key].hero_image || imageUrl;
-                                            break;
-                                        }
-                                    }
-                                }
-                                detailsHtml += `<tr>
-                                    <td><img src="${imageUrl}" alt="${item.urun_adi || 'Ürün'}" class="product-thumbnail"></td>
-                                    <td>${item.urun_adi || 'Bilinmeyen Ürün'}</td>
-                                    <td>${item.miktar || 0}</td>
-                                    <td>${item.birim_fiyat ? parseFloat(item.birim_fiyat).toFixed(2).replace('.', ',') : '0,00'} TL</td>
-                                    <td>${item.ara_toplam ? parseFloat(item.ara_toplam).toFixed(2).replace('.', ',') : '0,00'} TL</td>
-                                </tr>`;
-                            });
+    // --- HATA AYIKLAMA KODLARI BAŞLANGIÇ ---
+    console.log("-------------------------------------");
+    console.log("SİPARİŞTEN GELEN ÜRÜN ADI:", itemNameFromOrder);
+    // productsData'nın kendisini veya ilk birkaç anahtarını loglayarak yapısını kontrol edebilirsiniz
+    // console.log("productsData NESNESİ (ilk birkaç anahtar):", Object.keys(productsData).slice(0,5));
+    // console.log("productsData TAMAMI:", productsData); // Çok büyük olabilir, dikkatli kullanın
+    // --- HATA AYIKLAMA KODLARI SONU ---
+
+    if (productsData && itemNameFromOrder) {
+         for (const key in productsData) { // productsData bir nesne { "1":{...}, "2":{...} }
+            if (productsData.hasOwnProperty(key)) {
+                const productNameFromData = String(productsData[key].name).trim();
+                
+                // --- HATA AYIKLAMA KODLARI BAŞLANGIÇ ---
+                // Eşleşme denemesini logla (çok fazla log olmaması için bir koşul eklenebilir veya sadece eşleşme varsa logla)
+                // İsimlerin birbirini içerip içermediğini kontrol etmek için küçük harfe çevirerek karşılaştırma:
+                if (productNameFromData.toLowerCase().includes(itemNameFromOrder.toLowerCase()) || itemNameFromOrder.toLowerCase().includes(productNameFromData.toLowerCase())) {
+                    console.log(`  Karşılaştırılıyor: '${productNameFromData}' (productsData) vs '${itemNameFromOrder}' (sipariş). Tam Eşleşme: ${productNameFromData === itemNameFromOrder}`);
+                }
+                // --- HATA AYIKLAMA KODLARI SONU ---
+
+                if (productNameFromData === itemNameFromOrder) {
+                    imageUrl = productsData[key].image || productsData[key].hero_image || imageUrl;
+                    // --- HATA AYIKLAMA KODLARI BAŞLANGIÇ ---
+                    console.log("+++ EŞLEŞME BULUNDU! Resim URL:", imageUrl);
+                    // --- HATA AYIKLAMA KODLARI SONU ---
+                    break;
+                }
+            }
+        }
+    } else {
+        // --- HATA AYIKLAMA KODLARI BAŞLANGIÇ ---
+        console.log("productsData veya itemNameFromOrder tanımsız/boş, resim arama atlandı.");
+        // --- HATA AYIKLAMA KODLARI SONU ---
+    }
+    
+    // HTML oluşturma kısmı (gerisi aynı kalacak)
+    detailsHtml += `<tr>
+        <td><img src="${imageUrl}" alt="${item.urun_adi || 'Ürün'}" class="product-thumbnail"></td>
+        <td>${item.urun_adi || 'Bilinmeyen Ürün'}</td>
+        <td>${item.miktar || 0}</td>
+        <td>${item.birim_fiyat ? parseFloat(item.birim_fiyat).toFixed(2).replace('.', ',') : '0,00'} TL</td>
+        <td>${item.ara_toplam ? parseFloat(item.ara_toplam).toFixed(2).replace('.', ',') : '0,00'} TL</td>
+    </tr>`;
+});
                             detailsHtml += '</tbody></table></div>';
                         } else {
                             detailsHtml += '<p style="margin-top:20px; text-align:center; color:var(--asikzade-gray);">Bu siparişe ait ürün detayı bulunamadı.</p>';
