@@ -1,10 +1,5 @@
 <?php
-if (function_exists('curl_init')) {
-    echo "cURL is enabled on Vercel.";
-} else {
-    echo "cURL IS NOT ENABLED on Vercel!";
-}
-exit;
+
 // config.php, supabase_api_request fonksiyonunu içeren admin_config.php'yi dahil etmeli.
 // Bu dosyanın (login_process.php) bulunduğu yere göre config.php'nin yolunu ayarlayın.
 // Eğer login_process.php ve config.php aynı dizindeyse (örn: api/):
