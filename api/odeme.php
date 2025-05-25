@@ -24,7 +24,7 @@ if (!$user_logged_in) {
     // Hata ayıklama sırasında bu yönlendirmeyi geçici olarak kapatabiliriz
     // header('Location: login.php?' . http_build_query($params));
     // exit;
-   // echo "<p style='color:red; font-weight:bold;'>HATA AYIKLAMA: Kullanici giris yapmamis, normalde login.php'ye yonlendirilecekti.</p>";
+    echo "<p style='color:red; font-weight:bold;'>HATA AYIKLAMA: Kullanici giris yapmamis, normalde login.php'ye yonlendirilecekti.</p>";
     // Bu noktada script'i durdurmak daha iyi olabilir, çünkü aşağıdaki kodlar kullanıcı bilgisi bekliyor.
     // exit; 
 }
@@ -59,7 +59,7 @@ $sub_total_summary = 0;
 $shipping_cost = 50.00;
 
 // --- HATA AYIKLAMA CIKTILARI BASLANGICI ---
-/*/echo "<pre style='background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc; font-size: 12px; text-align: left;'>DEBUG INFO ODEME.PHP:<br>";
+echo "<pre style='background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc; font-size: 12px; text-align: left;'>DEBUG INFO ODEME.PHP:<br>";
 
 if (isset($_COOKIE['asikzade_cart'])) {
     echo "<br>--- asikzade_cart COOKIE HAM DEGERI ---<br>";
@@ -106,18 +106,18 @@ echo "<br>--- CART CONTENTS SUMMARY (\$cart_contents_summary) HESAPLAMASINDAN SO
 var_dump($cart_contents_summary);
 
 echo "</pre>";
-*/ // --- HATA AYIKLAMA CIKTILARI SONU ---
+ // --- HATA AYIKLAMA CIKTILARI SONU ---
 
 // Sepet boş kontrolü (yönlendirme geçici olarak devre dışı)
 if (empty($cart_contents_summary)) {
     // Orijinal yönlendirme (şimdilik kapalı):
     // header('Location: sepet.php?info_msg=' . urlencode("Ödeme yapabilmek için sepetinizde ürün bulunmalıdır."));
     // exit;
-   // echo "<p style='color:red; font-weight:bold; font-size:16px;'>HATA AYIKLAMA: cart_contents_summary DIZISI BOS OLDUGU ICIN normalde sepet.php'ye YONLENDIRME OLACAKTI!</p>";
+    echo "<p style='color:red; font-weight:bold; font-size:16px;'>HATA AYIKLAMA: cart_contents_summary DIZISI BOS OLDUGU ICIN normalde sepet.php'ye YONLENDIRME OLACAKTI!</p>";
     // Bu noktada daha fazla işlem yapmamak için script'i durdurabiliriz, çünkü sepet boş.
     // exit; 
 } else {
-   // echo "<p style='color:green; font-weight:bold; font-size:16px;'>HATA AYIKLAMA: cart_contents_summary DIZISI DOLU. Sayfa normal isleyecek.</p>";
+    echo "<p style='color:green; font-weight:bold; font-size:16px;'>HATA AYIKLAMA: cart_contents_summary DIZISI DOLU. Sayfa normal isleyecek.</p>";
     // Sepet doluysa, toplamları burada hesaplayalım (orijinal kodunuzdaki gibi)
     foreach ($cart_contents_summary as $item) {
         $sub_total_summary += $item['subtotal'];
