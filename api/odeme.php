@@ -59,7 +59,7 @@ $sub_total_summary = 0;
 $shipping_cost = 50.00;
 
 // --- HATA AYIKLAMA CIKTILARI BASLANGICI ---
-echo "<pre style='background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc; font-size: 12px; text-align: left;'>DEBUG INFO ODEME.PHP:<br>";
+/*/echo "<pre style='background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc; font-size: 12px; text-align: left;'>DEBUG INFO ODEME.PHP:<br>";
 
 if (isset($_COOKIE['asikzade_cart'])) {
     echo "<br>--- asikzade_cart COOKIE HAM DEGERI ---<br>";
@@ -106,7 +106,7 @@ echo "<br>--- CART CONTENTS SUMMARY (\$cart_contents_summary) HESAPLAMASINDAN SO
 var_dump($cart_contents_summary);
 
 echo "</pre>";
-// --- HATA AYIKLAMA CIKTILARI SONU ---
+*/ // --- HATA AYIKLAMA CIKTILARI SONU ---
 
 // Sepet boş kontrolü (yönlendirme geçici olarak devre dışı)
 if (empty($cart_contents_summary)) {
