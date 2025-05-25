@@ -1,17 +1,12 @@
 {
   "version": 2,
-  "functions": {
-    "api/*.php": {
-      "runtime": "vercel-php@0.7.3",
+  "builds": [
+    {
+      "src": "api/**/*.php", 
+      "use": "vercel-php@0.7.3",
       "config": {
         "phpIni": "api/php.ini" 
       }
-    }
-  },
-  "builds": [
-    {
-      "src": "api/*.php", 
-      "use": "vercel-php@0.7.3" 
     }
 
   ],
@@ -21,7 +16,7 @@
     { "src": "/admin_dashboard.php", "dest": "/api/admin_dashboard.php" },
     { "src": "/admin_login_process.php", "dest": "/api/admin_login_process.php" },
     { "src": "/admin_login.php", "dest": "/api/admin_login.php" },
-    { "src": "/admin_logout.php", "dest": "/api/admin_logout.php" }, 
+    { "src": "/admin_logout.php", "dest": "/api/admin_logout.php" },
     { "src": "/anasayfa.php", "dest": "/api/anasayfa.php" },
     { "src": "/cart_action.php", "dest": "/api/cart_action.php" },
     { "src": "/config.php", "dest": "/api/config.php" },
@@ -40,12 +35,8 @@
     { "src": "/sepet.php", "dest": "/api/sepet.php" },
     { "src": "/urun.html", "dest": "/api/urun.html" },
 
-
-    { "src": "^/$", "dest": "/api/index.php" }, 
-
-
+    { "src": "^/$", "dest": "/api/index.php" },
     { "src": "/(?<file>[^/]+\\.php)$", "dest": "/api/$file" },
-
     { "src": "/(.*)", "dest": "/api/index.php" }
   ]
 }
