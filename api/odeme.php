@@ -12,7 +12,9 @@ if (isset($_COOKIE[$user_cookie_name])) {
     if ($user_data_from_cookie && isset($user_data_from_cookie['user_id'])) {
         $user_logged_in = true;
     } else {
-        $user_data_from_cookie = [];
+        $user_data_from_cookie = []; 
+        // İsteğe bağlı: Bozuk cookie'yi temizle
+        // setcookie($user_cookie_name, '', time() - 3600, "/"); 
     }
 }
 
@@ -21,15 +23,10 @@ if (!$user_logged_in) {
         'redirect_after_login' => 'odeme.php',
         'info_msg' => urlencode("Ödeme yapmak için lütfen giriş yapın.")
     ];
-    // Hata ayıklama sırasında bu yönlendirmeyi geçici olarak kapatabiliriz
-    // header('Location: login.php?' . http_build_query($params));
-    // exit;
-    echo "<p style='color:red; font-weight:bold;'>HATA AYIKLAMA: Kullanici giris yapmamis, normalde login.php'ye yonlendirilecekti.</p>";
-    // Bu noktada script'i durdurmak daha iyi olabilir, çünkü aşağıdaki kodlar kullanıcı bilgisi bekliyor.
-    // exit; 
+    header('Location: login.php?' . http_build_query($params));
+    exit;
 }
 
-// User is logged in, extract data with defaults
 $user_id_field_value = $user_data_from_cookie['user_id'] ?? '';
 $user_ad = $user_data_from_cookie['user_ad'] ?? '';
 $user_soyad = $user_data_from_cookie['user_soyad'] ?? '';
@@ -39,14 +36,14 @@ $user_telefon_ornek = $user_data_from_cookie['user_telefon'] ?? '0500 000 00 00'
 $adres_satiri1_value = $user_data_from_cookie['adres_satiri1'] ?? '';
 $apt_suite_value = $user_data_from_cookie['apt_suite'] ?? '';
 
-if (empty($adres_satiri1_value) && empty($apt_suite_value)) {
-    $user_adres_ornek_parts = explode("\n", ($user_data_from_cookie['user_adres'] ?? "Örnek Mah. Atatürk Cad. No:1 Daire:2\nEfeler / AYDIN"));
-    $adres_satiri1_value = $user_adres_ornek_parts[0] ?? 'Örnek Mah. Atatürk Cad. No:1 Daire:2';
-    if (count($user_adres_ornek_parts) > 1 && empty($apt_suite_value)) {
-      // Eğer cookie'de apt_suite yoksa ve user_adres'te birden fazla satır varsa, ikinci satırı apt_suite için kullanmayı deneyebiliriz.
-      // Ancak bu, user_adres'in her zaman bu formatta olacağına dair bir varsayımdır.
-      // Şimdilik, formdaki adres_satiri1 ve apt_suite alanlarını ayrı ayrı dolduruyoruz.
+if (empty($adres_satiri1_value) && empty($apt_suite_value) && isset($user_data_from_cookie['user_adres'])) {
+    $user_adres_ornek_parts = explode("\n", $user_data_from_cookie['user_adres']);
+    $adres_satiri1_value = $user_adres_ornek_parts[0] ?? '';
+    if (count($user_adres_ornek_parts) > 1) {
+        $apt_suite_value = $user_adres_ornek_parts[1] ?? '';
     }
+} elseif (empty($adres_satiri1_value) && empty($apt_suite_value)) {
+    $adres_satiri1_value = 'Örnek Mah. Atatürk Cad. No:1 Daire:2';
 }
 
 $cart_item_count = 0;
@@ -57,29 +54,17 @@ if (function_exists('get_cart_count')) {
 $cart_contents_summary = [];
 $sub_total_summary = 0;
 $shipping_cost = 50.00;
-
-// --- HATA AYIKLAMA CIKTILARI BASLANGICI ---
-echo "<pre style='background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc; font-size: 12px; text-align: left;'>DEBUG INFO ODEME.PHP:<br>";
+$estimated_taxes = 0;
+$grand_total_summary = 0;
 
 if (isset($_COOKIE['asikzade_cart'])) {
-    echo "<br>--- asikzade_cart COOKIE HAM DEGERI ---<br>";
-    var_dump($_COOKIE['asikzade_cart']);
-    $cart_cookie_data_debug = json_decode($_COOKIE['asikzade_cart'], true);
-    echo "<br>--- json_decode SONRASI (\$cart_cookie_data_debug) ---<br>";
-    var_dump($cart_cookie_data_debug);
-    if(json_last_error() !== JSON_ERROR_NONE) {
-        echo "<br>JSON DECODE HATASI: " . json_last_error_msg() . "<br>";
-    }
-
-    // $cart_cookie_data_debug kullanarak $cart_contents_summary hesaplamasını burada yapalım (orijinal kodunuzdaki gibi)
-    // Bu, $cart_contents_summary'nin neden boş kaldığını anlamamıza yardımcı olacak.
-    if (is_array($cart_cookie_data_debug)) {
-        foreach ($cart_cookie_data_debug as $item_id_from_cookie => $item_data_from_cookie) {
+    $cart_cookie_data = json_decode($_COOKIE['asikzade_cart'], true);
+    if (is_array($cart_cookie_data)) {
+        foreach ($cart_cookie_data as $item_id_from_cookie => $item_data_from_cookie) {
             if (isset($products[$item_id_from_cookie]) && isset($item_data_from_cookie['quantity'])) {
                 $product = $products[$item_id_from_cookie];
                 $quantity = max(1, (int)$item_data_from_cookie['quantity']);
                 $item_subtotal = $product['price'] * $quantity;
-                // $sub_total_summary += $item_subtotal; // Toplamı burada tekrar hesaplamaya gerek yok, zaten aşağıda var.
                 $cart_contents_summary[$item_id_from_cookie] = [
                     'name' => $product['name'],
                     'image' => $product['image'] ?? $product['hero_image'] ?? 'https://via.placeholder.com/60',
@@ -90,39 +75,16 @@ if (isset($_COOKIE['asikzade_cart'])) {
             }
         }
     }
-
-} else {
-    echo "<br>--- asikzade_cart COOKIE BULUNAMADI ---<br>";
 }
 
-echo "<br>--- PRODUCTS DIZISI (ilk 2 eleman) ---<br>";
-if (isset($products)) {
-    var_dump(array_slice($products, 0, 2));
-} else {
-    echo "\$products dizisi TANIMLI DEGIL.<br>";
-}
-
-echo "<br>--- CART CONTENTS SUMMARY (\$cart_contents_summary) HESAPLAMASINDAN SONRA ---<br>";
-var_dump($cart_contents_summary);
-
-echo "</pre>";
- // --- HATA AYIKLAMA CIKTILARI SONU ---
-
-// Sepet boş kontrolü (yönlendirme geçici olarak devre dışı)
 if (empty($cart_contents_summary)) {
-    // Orijinal yönlendirme (şimdilik kapalı):
-    // header('Location: sepet.php?info_msg=' . urlencode("Ödeme yapabilmek için sepetinizde ürün bulunmalıdır."));
-    // exit;
-    echo "<p style='color:red; font-weight:bold; font-size:16px;'>HATA AYIKLAMA: cart_contents_summary DIZISI BOS OLDUGU ICIN normalde sepet.php'ye YONLENDIRME OLACAKTI!</p>";
-    // Bu noktada daha fazla işlem yapmamak için script'i durdurabiliriz, çünkü sepet boş.
-    // exit; 
+    header('Location: sepet.php?info_msg=' . urlencode("Ödeme yapabilmek için sepetinizde ürün bulunmalıdır."));
+    exit;
 } else {
-    echo "<p style='color:green; font-weight:bold; font-size:16px;'>HATA AYIKLAMA: cart_contents_summary DIZISI DOLU. Sayfa normal isleyecek.</p>";
-    // Sepet doluysa, toplamları burada hesaplayalım (orijinal kodunuzdaki gibi)
     foreach ($cart_contents_summary as $item) {
         $sub_total_summary += $item['subtotal'];
     }
-    $estimated_taxes = $sub_total_summary * 0.18; // Örnek vergi oranı
+    $estimated_taxes = $sub_total_summary * 0.18;
     $grand_total_summary = $sub_total_summary + $shipping_cost + $estimated_taxes;
 }
 
@@ -139,7 +101,6 @@ if(isset($_GET['error_msg_odeme'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ödeme - AŞIKZADE</title>
     <style>
-        /* Kullanıcının verdiği CSS stilleri buraya gelecek (bir önceki yanıtta vardı) */
         :root {
             --asikzade-content-bg: #fef6e6;
             --asikzade-green: #8ba86d;
@@ -232,7 +193,7 @@ if(isset($_GET['error_msg_odeme'])) {
                     <h2 class="section-title">Teslimat</h2>
                     <div class="form-group">
                         <label for="country">Ülke/Bölge</label>
-                        <select id="country" name="country"> <!-- Original name was 'country', changed to 'ulke' for odeme_process.php -->
+                        <select id="country" name="ulke">
                             <option value="TR" selected>Türkiye</option>
                         </select>
                     </div>
@@ -327,11 +288,9 @@ if(isset($_GET['error_msg_odeme'])) {
 
         <aside class="checkout-summary-section">
             <h2 class="section-title">Sipariş Özeti</h2>
-            <?php if (!empty($cart_contents_summary)): ?>
-                <?php foreach ($cart_contents_summary as $item_id => $item):
-                // $sub_total_summary, $shipping_cost, $estimated_taxes, $grand_total_summary PHP bloğunda hesaplanmalı
-                // Bu döngü sadece ürünleri listelemek için
-                ?>
+            <?php if (!empty($cart_contents_summary)):
+            ?>
+                <?php foreach ($cart_contents_summary as $item_id => $item): ?>
                 <div class="order-summary-item">
                     <img src="<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>">
                     <div class="item-details">
