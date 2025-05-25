@@ -1,44 +1,24 @@
 {
   "version": 2,
   "functions": {
-    "api/*.php": { 
-      "runtime": "vercel-php@0.6.2"
+    "api/**/*.php": {
+      "runtime": "vercel-php@0.7.3"
     }
   },
   "routes": [
 
+    { "src": "/test_debug.php", "dest": "/api/test_debug.php" },
 
 
-    { "src": "/admin_config.php", "dest": "/api/admin_config.php" },
-    { "src": "/admin_dashboard.php", "dest": "/api/admin_dashboard.php" },
-    { "src": "/admin_login_process.php", "dest": "/api/admin_login_process.php" },
-    { "src": "/admin_login.php", "dest": "/api/admin_login.php" },
-    { "src": "/admin_logout.php", "dest": "/api/admin_logout.php" },
-
-
-    { "src": "/anasayfa.php", "dest": "/api/anasayfa.php" },
-    { "src": "/cart_action.php", "dest": "/api/cart_action.php" },
-    { "src": "/config.php", "dest": "/api/config.php" }, 
-    { "src": "/dashboard.php", "dest": "/api/dashboard.php" },
-    { "src": "/get_order_details.php", "dest": "/api/get_order_details.php" },
-    { "src": "/index.php", "dest": "/api/index.php" },
-    { "src": "/login_process.php", "dest": "/api/login_process.php" },
-    { "src": "/login.php", "dest": "/api/login.php" },
-    { "src": "/logout.php", "dest": "/api/logout.php" },
-    { "src": "/odeme_process.php", "dest": "/api/odeme_process.php" },
-    { "src": "/odeme.php", "dest": "/api/odeme.php" },
-    { "src": "/product_detail.php", "dest": "/api/product_detail.php" },
-    { "src": "/products_data.php", "dest": "/api/products_data.php" },
-    { "src": "/register_process.php", "dest": "/api/register_process.php" },
-    { "src": "/register.php", "dest": "/api/register.php" },
-    { "src": "/sepet.php", "dest": "/api/sepet.php" },
-    { "src": "/urun.html", "dest": "/api/urun.html" }, 
-
-    { "src": "^/$", "dest": "/api/index.php" },
-
+ 
     { "src": "/(?<filename>[^/]+\\.php)$", "dest": "/api/$filename" },
-
-
-    { "src": "/(.*)", "dest": "/api/index.php" }
-  ]
+    
+   
+    { "src": "/(.*)", "dest": "/api/index.php" } 
+  ],
+  "build": {
+    "env": {
+      "NOW_PHP_DEBUG": "1" 
+    }
+  }
 }
