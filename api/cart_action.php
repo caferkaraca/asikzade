@@ -1,6 +1,5 @@
 <?php
 // cart_action.php
-session_start(); // Gelecekteki özellikler için (CSRF vb.)
 include 'products_data.php'; // Ürün verilerini ve get_cart_count fonksiyonunu dahil et
 
 $action = $_POST['action'] ?? $_GET['action'] ?? null;

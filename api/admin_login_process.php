@@ -63,41 +63,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($is_admin) {
             // Admin girişi başarılı
-            // Cookie oluştur. Değer olarak basit bir flag veya daha güvenli bir token olabilir.
-            // Token kullanılıyorsa, bu token sunucu tarafında da saklanıp doğrulanmalı.
-            // Şimdilik basit bir değer kullanıyoruz.
-            $cookie_name = 'asikzade_admin_session';
-            // Token örneği (daha güvenli olması için):
-            // $admin_session_token = bin2hex(random_bytes(32));
-            // $cookie_value = $admin_session_token;
-            // -- Bu token'ı veritabanında kullanıcıyla ilişkilendirip, her istekte doğrulamak gerekir --
-            // Basit flag örneği:
-            $cookie_value = json_encode([
-                'admin_id' => $userDataFromDB['id'],
-                'admin_email' => $userDataFromDB['email'],
-                'admin_ad' => $userDataFromDB['ad'] ?? 'Admin',
-                'admin_soyad' => $userDataFromDB['soyad'] ?? '',
-                'logged_in_at' => time()
-            ]); // Kullanıcı bilgilerini cookie'de saklayabiliriz (dikkatli olun, hassas veri olmamalı)
-                // Veya sadece bir 'true' değeri de olabilir: $cookie_value = 'true';
+            $admin_token = bin2hex(random_bytes(32)); // Generate a secure token
 
             $cookie_expire = time() + (86400 * 30); // 30 gün
-            $cookie_path = "/admin/"; // Cookie'nin geçerli olacağı path (admin paneli için)
-                                   // Eğer admin paneli kök dizinde değilse, doğru path'i ayarlayın.
-                                   // Eğer tüm sitede geçerli olacaksa "/" kullanın.
-            $cookie_domain = ""; // Genellikle boş bırakılır, mevcut domainde geçerli olur.
-            $cookie_secure = isset($_SERVER["HTTPS"]); // Sadece HTTPS üzerinden gönderilsin
-            $cookie_httponly = true; // JavaScript erişimini engelle
+            $cookie_path = "/"; // Cookie valid across the entire domain
+            $cookie_domain = ""; // Current domain
+            $cookie_secure = isset($_SERVER["HTTPS"]); // True if HTTPS
+            $cookie_httponly = true; // Prevent JS access
+            $cookie_samesite = 'Lax'; // CSRF protection
 
-            setcookie($cookie_name, $cookie_value, [
+            setcookie(ADMIN_AUTH_COOKIE_NAME, $admin_token, [
                 'expires' => $cookie_expire,
                 'path' => $cookie_path,
                 'domain' => $cookie_domain,
                 'secure' => $cookie_secure,
                 'httponly' => $cookie_httponly,
-                'samesite' => 'Lax' // CSRF koruması için SameSite attribute
+                'samesite' => $cookie_samesite
             ]);
-
 
             // Şifre hash'inin güncellenmesi gerekip gerekmediğini kontrol et (opsiyonel)
             if (password_needs_rehash($sifre_hash_from_db, PASSWORD_DEFAULT)) {

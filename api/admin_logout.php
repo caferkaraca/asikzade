@@ -1,23 +1,18 @@
 <?php
 // admin_logout.php
-$cookie_name = 'asikzade_admin_session';
-$cookie_path = "/admin/"; // admin_login_process.php'de set ederken kullandığınız path ile aynı olmalı
+require_once 'admin_config.php'; // For ADMIN_AUTH_COOKIE_NAME
 
-// Cookie'yi geçmiş bir zamana ayarlayarak sil
-setcookie($cookie_name, '', time() - 3600, $cookie_path, "", isset($_SERVER["HTTPS"]), true);
-// Veya daha modern setcookie array syntax'ı ile:
-/*
-setcookie($cookie_name, '', [
-    'expires' => time() - 3600,
-    'path' => $cookie_path,
-    'domain' => '', // admin_login_process.php'deki ile aynı
+// Clear the admin authentication cookie
+setcookie(ADMIN_AUTH_COOKIE_NAME, '', [
+    'expires' => time() - 3600, // Past time to delete
+    'path' => '/', // MUST match the path used when setting the cookie
+    'domain' => '', // Should match domain used when setting
     'secure' => isset($_SERVER["HTTPS"]),
     'httponly' => true,
-    'samesite' => 'Lax'
+    'samesite' => 'Lax' // Should match samesite used when setting
 ]);
-*/
 
-// Login sayfasına yönlendir
-header('Location: admin_login.php?logout=success'); // İsteğe bağlı: çıkış yapıldığına dair mesaj
+// Redirect to the login page
+header('Location: admin_login.php?logout=success'); // Optional: message indicating logout
 exit;
 ?>

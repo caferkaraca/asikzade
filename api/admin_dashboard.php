@@ -28,21 +28,17 @@ function admin_check_login($redirect_if_not_logged_in = true) {
     return false; // Admin giriş yapmamış
 }
 */
-admin_check_login(); // Yetkisiz erişimi engelle
+$current_admin_user = admin_check_login(); // Yetkisiz erişimi engelle, returns user data or redirects
 
-// 2. Admin bilgilerini cookie'den al
+// Admin bilgilerini $current_admin_user'dan al
 $admin_email_display = 'Admin'; // Varsayılan
-$admin_id_from_cookie = null;
+$admin_id_from_cookie = null;   // Varsayılan
 
-if (isset($_COOKIE['asikzade_admin_session'])) {
-    $admin_data_json = $_COOKIE['asikzade_admin_session'];
-    $admin_data = json_decode($admin_data_json, true);
-    if ($admin_data && isset($admin_data['admin_email'])) {
-        $admin_email_display = $admin_data['admin_email'];
-    }
-    if ($admin_data && isset($admin_data['admin_id'])) {
-        $admin_id_from_cookie = $admin_data['admin_id']; // Daha sonra gerekirse kullanılabilir
-    }
+if ($current_admin_user && isset($current_admin_user['admin_email'])) {
+    $admin_email_display = $current_admin_user['admin_email'];
+}
+if ($current_admin_user && isset($current_admin_user['admin_id'])) {
+    $admin_id_from_cookie = $current_admin_user['admin_id'];
 }
 
 

@@ -7,29 +7,47 @@ error_reporting(E_ALL);
 // Ana config dosyasını dahil et (SUPABASE_URL, SUPABASE_KEY_ANON, SUPABASE_SERVICE_ROLE_KEY sabitleri için)
 require_once __DIR__ . '/config.php'; // config.php ile aynı dizinde olduğunu varsayıyoruz. Değilse yolu düzeltin.
 
-// session_start() zaten config.php'de çağrılıyor olmalı, tekrar çağırmaya gerek yok ama kontrol edelim.
-if (session_status() == PHP_SESSION_NONE) {
-    // Bu durum config.php'nin düzgün dahil edilmediğini veya session_start'ı atladığını gösterir.
-    // Normalde buraya düşmemesi lazım.
-    session_start();
+// Define the admin auth cookie name
+if (!defined('ADMIN_AUTH_COOKIE_NAME')) {
+    define('ADMIN_AUTH_COOKIE_NAME', 'asikzade_admin_token');
 }
 
-function admin_check_login() {
-    if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true ||
-        !isset($_SESSION['admin_id']) ) {
-
-        $_SESSION = array(); // Tüm session değişkenlerini temizle
-        if (ini_get("session.use_cookies")) {
-            $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000, $params["path"], $params["domain"], $params["secure"], $params["httponly"]);
-        }
-        session_destroy(); // Session'ı yok et
-        session_start();   // Yeni, temiz bir session başlat (mesaj için)
-
-        $_SESSION['admin_error_message'] = "Bu sayfaya erişim yetkiniz yok. Lütfen admin olarak giriş yapın.";
-        header('Location: admin_login.php'); // admin_login.php'nin yolu doğru olmalı
-        exit;
+// Function to get the admin token data (placeholder for JWT decoding)
+// For now, it just checks if the token exists and returns a placeholder or the raw token
+function get_admin_token_data() {
+    if (isset($_COOKIE[ADMIN_AUTH_COOKIE_NAME])) {
+        // In a real JWT scenario, you would decode and verify the token here.
+        // For now, we'll just return a placeholder indicating the user is "logged in".
+        // Or, return the raw token string if that's needed by other parts of the admin panel.
+        // $token = $_COOKIE[ADMIN_AUTH_COOKIE_NAME];
+        // $decoded_token = your_jwt_decode_and_verify_function($token);
+        // return $decoded_token; // This would contain user_id, roles, etc.
+        return ['admin_id' => 'temp_admin_id', 'admin_email' => 'admin@example.com', 'logged_in' => true]; // Placeholder with email
     }
+    return null;
+}
+
+
+function admin_check_login($redirect_on_fail = true) {
+    $admin_data = get_admin_token_data();
+
+    if (!$admin_data) { // In a real JWT scenario, this would also check if token is valid
+        if ($redirect_on_fail) {
+            // Clear any potentially invalid/old cookie
+            setcookie(ADMIN_AUTH_COOKIE_NAME, '', time() - 3600, "/"); // Adjust path if needed
+            
+            $error_param = 'Bu sayfaya erişim yetkiniz yok. Lütfen admin olarak giriş yapın.';
+            // admin_login.php'nin yolu doğru olmalı. Eğer api klasöründeyse ve admin_login.php ana dizindeyse ../admin_login.php olmalı.
+            // Ancak genellikle admin_config.php'yi çağıran scriptler ana dizinde veya admin klasöründe olur, bu yüzden 'admin_login.php' varsayımı yapılıyor.
+            // Proje yapısına göre bu yolun düzeltilmesi gerekebilir.
+            header('Location: admin_login.php?error_msg=' . urlencode($error_param));
+            exit;
+        }
+        return false;
+    }
+    // Optionally, store decoded admin data in a global or pass it around if needed
+    // For example: $GLOBALS['current_admin_user'] = $admin_data;
+    return $admin_data; // Or true, if you only care about the login state
 }
 
 /**
@@ -87,7 +105,8 @@ function supabase_api_request($method, $path, $data = [], $custom_headers = [], 
     $options = [
         'http' => [
             'method' => $http_method,
-            'header' => implode("\r\n", $headers_array),
+            'header' => implode("
+", $headers_array),
             'timeout' => 30, // İstek zaman aşımı (saniye)
             'ignore_errors' => true, // HTTP hata kodlarında içeriği okumak için
         ],
@@ -107,15 +126,8 @@ function supabase_api_request($method, $path, $data = [], $custom_headers = [], 
                 $request_body_json = json_encode($data);
                 $options['http']['content'] = $request_body_json;
             } else {
-                // Boş $data ile POST/PATCH için, isteğe bağlı olarak Content-Length: 0 eklenir
-                // veya boş bir JSON nesnesi gönderebilirsiniz: json_encode(new stdClass())
-                // Şimdilik, !empty($data) kontrolü ile orijinal cURL davranışına benzer.
-                // Eğer boş data için "{}" gönderilmesi gerekiyorsa:
-                // $request_body_json = json_encode(new stdClass());
-                // $options['http']['content'] = $request_body_json;
-                // Veya Supabase boş body kabul ediyorsa, content'i boş bırakmak yeterli.
-                // PHP stream context, content boşsa Content-Length: 0 gönderir.
-                $options['http']['content'] = ''; // Boş string, Content-Length: 0 anlamına gelir.
+                // Boş $data ile POST/PATCH için, Content-Length: 0 anlamına gelen boş string.
+                $options['http']['content'] = ''; 
             }
             break;
         case 'DELETE':
