@@ -209,6 +209,7 @@ if (isset($_GET['registration']) && $_GET['registration'] === 'success') {
             </form>
             <p class="signup-link">
                 Hesabınız yok mu? <a href="register.php">Hemen Kaydolun</a>
+                Admin Girişi  <a href="admin_login.php">Admin olarak giriş yap</a>
             </p>
             <?php 
             // Eğer $_SESSION['form_data'] özellikle bu sayfada veya register.php gibi
