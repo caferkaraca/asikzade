@@ -14,9 +14,6 @@ if (!defined('SUPABASE_SERVICE_ROLE_KEY')) {
     define('SUPABASE_SERVICE_ROLE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indpbml5bmx1d3dtdGh1cmdpeWFyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0ODE1MjYzNSwiZXhwIjoyMDYzNzI4NjM1fQ.t2hGLP2XUxUwNLzqc4v8Yr_rhhMSkUKYvQmbuU8ObB0'); // GERÇEK KEY'İNİZİ GİRİN!
 }
 
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
 
 // admin_config.php, ana API fonksiyonunu içerdiği için onu burada dahil ediyoruz.
 // Dosya yolunun doğru olduğundan emin olun. Eğer config.php ve admin_config.php

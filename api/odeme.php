@@ -4,14 +4,20 @@
 require_once 'config.php';
 include 'products_data.php'; // $products dizisini sağlar
 
-// 1. KULLANICI GİRİŞ KONTROLÜ (Cookie ile)
+// 1. KULLANICI GİRİŞ KONTROLÜ VE TEMEL BİLGİLERİNİ ALMA (Cookie ile)
 $user_logged_in = false;
 $user_id_from_cookie = null;
-$user_ad = '';
-$user_soyad = '';
-$user_email = '';
-$user_telefon_ornek = '0500 000 00 00'; // Varsayılan telefon
-$user_adres_ornek = "Örnek Mah. Atatürk Cad. No:1 Daire:2\nEfeler / AYDIN"; // Varsayılan adres
+$user_ad_form = ''; // Form için varsayılan boş değer
+$user_soyad_form = '';
+$user_email_form = '';
+// Adres ve telefon bilgileri cookie'den okunmayacak, kullanıcı dolduracak.
+// Formda gösterilecek varsayılan/placeholder değerleri belirleyebiliriz.
+$user_telefon_placeholder = '05XX XXX XX XX';
+$user_adres_satiri1_placeholder = 'Mahalle, Cadde, Sokak ve No';
+$user_adres_satiri2_placeholder = 'Bina adı, kat, daire numarası';
+$user_sehir_value = 'Aydın'; // Varsayılan veya boş olabilir
+$user_ilce_value = 'Efeler';  // Varsayılan veya boş olabilir
+$user_postakodu_value = '09100'; // Varsayılan veya boş olabilir
 
 $user_cookie_name = 'asikzade_user_session'; // login_process.php'de kullanıcı için tanımlanan cookie adı
 
@@ -19,17 +25,13 @@ if (isset($_COOKIE[$user_cookie_name])) {
     $user_data_json = $_COOKIE[$user_cookie_name];
     $user_data = json_decode($user_data_json, true);
 
-    if ($user_data && isset($user_data['user_id'])) { // Temel kontrol: user_id var mı?
+    if ($user_data && isset($user_data['user_id'])) {
         $user_logged_in = true;
         $user_id_from_cookie = $user_data['user_id'];
-        $user_ad = $user_data['ad'] ?? '';
-        $user_soyad = $user_data['soyad'] ?? '';
-        $user_email = $user_data['email'] ?? '';
-        // Cookie'de adres ve telefon bilgileri de saklanıyorsa:
-        $user_telefon_ornek = $user_data['telefon'] ?? $user_telefon_ornek;
-        $user_adres_ornek = $user_data['adres'] ?? $user_adres_ornek;
-        // Eğer bu bilgiler cookie'de yoksa ve formda gösterilmesi gerekiyorsa,
-        // burada $user_id_from_cookie kullanarak Supabase'den çekmeniz gerekir.
+        $user_ad_form = $user_data['ad'] ?? '';
+        $user_soyad_form = $user_data['soyad'] ?? '';
+        $user_email_form = $user_data['email'] ?? '';
+        // Telefon ve adres cookie'de olmadığı için burada okunmuyor.
     }
 }
 
@@ -55,12 +57,6 @@ if (isset($_COOKIE['asikzade_cart'])) {
         }
     }
 }
-// Eğer get_cart_count() fonksiyonunuz cookie'den okuyorsa:
-/*
-if (function_exists('get_cart_count')) {
-    $cart_item_count = get_cart_count(); // Bu fonksiyonun $_COOKIE['asikzade_cart']'ı kullandığından emin olun
-}
-*/
 
 $cart_contents_summary = [];
 $sub_total_summary = 0;
@@ -103,13 +99,11 @@ $kdv_orani = 0.20; // İhtiyacınıza göre güncelleyin
 $estimated_taxes = $sub_total_summary * $kdv_orani;
 $grand_total_summary = $sub_total_summary + $shipping_cost + $estimated_taxes;
 
-// 3. URL'den ödeme işlemi sonrası hata mesajını al (odeme_process.php'den gelebilir)
+// URL'den ödeme işlemi sonrası hata mesajını al (odeme_process.php'den gelebilir)
 $error_message_odeme = null;
 if (isset($_GET['error_msg_odeme'])) {
     $error_message_odeme = htmlspecialchars(urldecode($_GET['error_msg_odeme']));
 }
-// Başarı mesajı da benzer şekilde alınabilir (eğer odeme_process.php'den başarı mesajı ile dönülüyorsa)
-// if (isset($_GET['success_msg_odeme'])) { ... }
 
 ?>
 <!DOCTYPE html>
@@ -136,7 +130,7 @@ if (isset($_GET['error_msg_odeme'])) {
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; }
         body {
-            background-color: #fff; /* Ödeme sayfası için beyaz arkaplan daha uygun olabilir */
+            background-color: #fff;
             color: var(--asikzade-dark-text);
             line-height: 1.6;
             display: flex;
@@ -144,9 +138,8 @@ if (isset($_GET['error_msg_odeme'])) {
             min-height: 100vh;
         }
         .header {
-            /* position: sticky; */ /* Header'ı sabit tutmak isterseniz */
             top: 0; width: 100%; display: flex; justify-content: space-between; align-items: center;
-            padding: 15px 50px; z-index: 1000; background: rgba(254, 246, 230, 0.95); /* Ana site header rengi */
+            padding: 15px 50px; z-index: 1000; background: rgba(254, 246, 230, 0.95);
             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
             box-shadow: 0 1px 0 rgba(0,0,0,0.05);
         }
@@ -176,24 +169,24 @@ if (isset($_GET['error_msg_odeme'])) {
             display: flex;
             flex-wrap: wrap;
             max-width: 1200px;
-            margin: 20px auto; /* Header'dan sonra biraz boşluk */
-            gap: 30px; /* Form ve özet arası boşluk */
+            margin: 20px auto;
+            gap: 30px;
         }
         .checkout-form-section {
-            flex: 2; /* Form alanı daha geniş */
-            padding: 0 20px; /* İç padding */
+            flex: 2;
+            padding: 0 20px;
             min-width: 300px;
         }
         .checkout-summary-section {
-            flex: 1; /* Özet alanı */
-            background-color: var(--asikzade-content-bg); /* Açık renk arka plan */
+            flex: 1;
+            background-color: var(--asikzade-content-bg);
             padding: 30px 25px;
             border-left: 1px solid var(--asikzade-border);
             min-width: 300px;
-            align-self: flex-start; /* Yukarıda başlasın */
+            align-self: flex-start;
         }
         .section-title {
-            font-size: 1.8rem; /* Biraz küçülttüm */
+            font-size: 1.8rem;
             font-weight: 500;
             margin-bottom: 25px;
             padding-bottom: 10px;
@@ -211,20 +204,20 @@ if (isset($_GET['error_msg_odeme'])) {
         .form-group input[type="email"],
         .form-group input[type="tel"],
         .form-group select,
-        .form-group .input-wrapper { /* Kart no için input-wrapper'ı da ekledim */
+        .form-group .input-wrapper {
             width: 100%; padding: 12px 15px; border: 1px solid var(--input-border-color);
             border-radius: 5px; font-size: 1rem; background-color: var(--input-bg); transition: border-color 0.2s;
         }
         .form-group input:focus,
         .form-group select:focus,
-        .form-group .input-wrapper:focus-within { /* input-wrapper için focus */
+        .form-group .input-wrapper:focus-within {
             outline: none; border-color: var(--input-focus-border-color); box-shadow: 0 0 0 1px var(--input-focus-border-color);
         }
-        .form-group .input-wrapper { display: flex; align-items: center; padding: 0; } /* Kart no için padding'i wrapper'dan al */
+        .form-group .input-wrapper { display: flex; align-items: center; padding: 0; }
         .form-group .input-wrapper input { border: none; outline: none; flex-grow: 1; padding: 12px 15px; background-color: transparent; }
         .form-group .input-wrapper svg { margin-right: 10px; color: var(--asikzade-gray); }
         .input-icon-wrapper { position: relative; display: flex; align-items: center; }
-        .input-icon-wrapper input { padding-right: 30px; /* İkon için yer aç */ }
+        .input-icon-wrapper input { padding-right: 30px; }
         .input-icon-wrapper .info-icon { position: absolute; right: 10px; color: var(--asikzade-gray); cursor: help; }
         .form-row { display: flex; gap: 15px; }
         .form-row .form-group { flex: 1; }
@@ -233,24 +226,23 @@ if (isset($_GET['error_msg_odeme'])) {
 
         .payment-method { border: 1px solid var(--asikzade-border); border-radius: 5px; margin-bottom: 15px; }
         .payment-method-header {
-            display: flex; align-items: center; padding: 15px; cursor: pointer; background-color: #f9f9f9; /* Açık gri */
+            display: flex; align-items: center; padding: 15px; cursor: pointer; background-color: #f9f9f9;
         }
         .payment-method-header.selected { background-color: var(--asikzade-content-bg); border-bottom: 1px solid var(--asikzade-border); }
         .payment-method-header input[type="radio"] { margin-right: 12px; width: 18px; height: 18px; accent-color: var(--asikzade-green); }
         .payment-method-header label { font-weight: 500; flex-grow: 1; }
         .payment-method-icons img { height: 24px; margin-left: 8px; vertical-align: middle; }
-        .payment-method-body { padding: 20px; border-top: 1px solid var(--asikzade-border); display: block; } /* Kredi kartı hep açık */
+        .payment-method-body { padding: 20px; border-top: 1px solid var(--asikzade-border); display: block; }
         
         .submit-button-container { margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--asikzade-border); text-align: right; }
         .submit-button-container .pay-now-btn {
-            background-color: #ef4444; /* Kırmızı tonu */ color: white; padding: 15px 35px; border: none;
+            background-color: #ef4444; color: white; padding: 15px 35px; border: none;
             border-radius: 5px; font-size: 1.1rem; font-weight: 500; cursor: pointer; transition: background-color 0.3s;
         }
-        .submit-button-container .pay-now-btn:hover { background-color: #dc2626; /* Koyu kırmızı */ }
+        .submit-button-container .pay-now-btn:hover { background-color: #dc2626; }
         .secure-info { font-size: 0.85rem; color: var(--asikzade-gray); margin-top: 10px; text-align: center; }
         .secure-info svg { vertical-align: middle; margin-right: 5px; }
 
-        /* Sipariş Özeti Stilleri */
         .order-summary-item { display: flex; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--asikzade-border); }
         .order-summary-item:last-child { border-bottom: none; margin-bottom: 0; }
         .order-summary-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 15px; border: 1px solid var(--asikzade-border); }
@@ -271,11 +263,11 @@ if (isset($_GET['error_msg_odeme'])) {
         .footer-content { max-width: 1200px; margin: 0 auto; padding: 0 50px; text-align: center; }
         .footer-content p { font-size: 0.9rem; color: var(--asikzade-gray); }
 
-        @media (max-width: 992px) { /* Tablet ve altı */
-            .checkout-container { flex-direction: column-reverse; } /* Özet üste gelir */
+        @media (max-width: 992px) {
+            .checkout-container { flex-direction: column-reverse; }
             .checkout-summary-section { border-left: none; border-bottom: 1px solid var(--asikzade-border); margin-bottom: 30px; }
         }
-        @media (max-width: 768px) { /* Mobil */
+        @media (max-width: 768px) {
             .header { padding: 12px 20px; } .logo-container img { height: 40px; } .logo-text { font-size: 18px; }
             .checkout-form-section, .checkout-summary-section { padding: 0 15px; }
             .form-row { flex-direction: column; gap: 0; } .form-row .form-group { margin-bottom: 20px; }
@@ -286,7 +278,7 @@ if (isset($_GET['error_msg_odeme'])) {
     <header class="header">
         <div class="logo-container">
             <a href="index.php"><img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo"></a>
-            <a href="index.php" class="logo-text">AŞIKZADE</a> <!-- Logo text eklendi -->
+            <a href="index.php" class="logo-text">AŞIKZADE</a>
         </div>
         <nav class="main-nav">
             <div class="user-actions-group">
@@ -306,16 +298,16 @@ if (isset($_GET['error_msg_odeme'])) {
     <div class="checkout-container">
         <section class="checkout-form-section">
             <?php if ($error_message_odeme): ?>
-                <div class="message-box-odeme"><?php echo $error_message_odeme; // Zaten htmlspecialchars yapıldı ?></div>
+                <div class="message-box-odeme"><?php echo $error_message_odeme; ?></div>
             <?php endif; ?>
 
             <form action="odeme_process.php" method="POST" id="payment-form">
-                <input type="hidden" name="user_id_field" value="<?php echo htmlspecialchars($user_id_from_cookie); ?>"> <!-- Kullanıcı ID'sini forma ekle -->
-                <input type="hidden" name="total_amount_field" value="<?php echo htmlspecialchars($grand_total_summary); ?>"> <!-- Toplam tutarı forma ekle -->
+                <input type="hidden" name="user_id_field" value="<?php echo htmlspecialchars($user_id_from_cookie); ?>">
+                <input type="hidden" name="total_amount_field" value="<?php echo htmlspecialchars($grand_total_summary); ?>">
                 
                 <div class="contact-info section-block">
                     <h2 class="section-title">İletişim</h2>
-                    <p><span class="label">Hesap:</span> <span class="value"><?php echo htmlspecialchars($user_email); ?></span></p>
+                    <p><span class="label">Hesap:</span> <span class="value"><?php echo htmlspecialchars($user_email_form); ?></span></p>
                      <p style="margin-top: 5px; font-size: 0.9rem;"><a href="logout.php" style="color:var(--asikzade-green); text-decoration: none;">Çıkış Yap</a></p>
                 </div>
 
@@ -323,45 +315,45 @@ if (isset($_GET['error_msg_odeme'])) {
                     <h2 class="section-title">Teslimat Adresi</h2>
                     <div class="form-group">
                         <label for="country">Ülke/Bölge</label>
-                        <select id="country" name="ulke"> <!-- name attribute'u eklendi -->
+                        <select id="country" name="ulke">
                             <option value="TR" selected>Türkiye</option>
                         </select>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="first_name">Ad</label>
-                            <input type="text" id="first_name" name="ad" value="<?php echo htmlspecialchars($user_ad); ?>" required> <!-- name attribute'u eklendi -->
+                            <input type="text" id="first_name" name="ad" value="<?php echo htmlspecialchars($user_ad_form); ?>" required>
                         </div>
                         <div class="form-group">
                             <label for="last_name">Soyad</label>
-                            <input type="text" id="last_name" name="soyad" value="<?php echo htmlspecialchars($user_soyad); ?>" required> <!-- name attribute'u eklendi -->
+                            <input type="text" id="last_name" name="soyad" value="<?php echo htmlspecialchars($user_soyad_form); ?>" required>
                         </div>
                     </div>
                     <div class="form-group">
                         <label for="address">Adres</label>
-                        <input type="text" id="address" name="adres_satiri1" placeholder="Mahalle, Cadde, Sokak ve No" value="<?php echo htmlspecialchars(explode("\n", $user_adres_ornek)[0] ?? ''); ?>" required> <!-- name attribute'u eklendi -->
+                        <input type="text" id="address" name="adres_satiri1" placeholder="<?php echo htmlspecialchars($user_adres_satiri1_placeholder); ?>" value="" required>
                     </div>
                     <div class="form-group">
                         <label for="apt_suite">Bina No / Daire (İsteğe Bağlı)</label>
-                        <input type="text" id="apt_suite" name="adres_satiri2" placeholder="Bina adı, kat, daire numarası" value="<?php echo htmlspecialchars(explode("\n", $user_adres_ornek)[1] ?? ''); ?>"> <!-- name attribute'u eklendi -->
+                        <input type="text" id="apt_suite" name="adres_satiri2" placeholder="<?php echo htmlspecialchars($user_adres_satiri2_placeholder); ?>" value="">
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="city">Şehir</label>
-                            <input type="text" id="city" name="sehir" value="Aydın" required> <!-- name attribute'u eklendi -->
+                            <input type="text" id="city" name="sehir" value="<?php echo htmlspecialchars($user_sehir_value); ?>" required>
                         </div>
                         <div class="form-group">
                             <label for="province">İlçe</label>
-                             <input type="text" id="province" name="ilce" value="Efeler" required> <!-- name attribute'u eklendi -->
+                             <input type="text" id="province" name="ilce" value="<?php echo htmlspecialchars($user_ilce_value); ?>" required>
                         </div>
                         <div class="form-group">
                             <label for="postal_code">Posta Kodu</label>
-                            <input type="text" id="postal_code" name="posta_kodu" value="09100" required> <!-- name attribute'u eklendi -->
+                            <input type="text" id="postal_code" name="posta_kodu" value="<?php echo htmlspecialchars($user_postakodu_value); ?>" required>
                         </div>
                     </div>
                      <div class="form-group">
                         <label for="phone">Telefon</label>
-                        <input type="tel" id="phone" name="telefon" placeholder="05XX XXX XX XX" value="<?php echo htmlspecialchars($user_telefon_ornek); ?>" required> <!-- name attribute'u eklendi -->
+                        <input type="tel" id="phone" name="telefon" placeholder="<?php echo htmlspecialchars($user_telefon_placeholder); ?>" value="" required>
                     </div>
                 </div>
 
@@ -371,7 +363,7 @@ if (isset($_GET['error_msg_odeme'])) {
 
                     <div class="payment-method">
                         <div class="payment-method-header selected">
-                            <input type="radio" id="credit_card_radio" name="payment_method_radio" value="credit_card" checked style="display:none;"> <!-- name değiştirildi karışmasın diye -->
+                            <input type="radio" id="credit_card_radio" name="payment_method_radio" value="credit_card" checked style="display:none;">
                             <label for="credit_card_radio" style="cursor:default;">Kredi Kartı</label>
                             <div class="payment-method-icons">
                                 <img src="https://www.freepnglogos.com/uploads/visa-and-mastercard-logo-26.png" alt="Visa Mastercard" style="height: 28px;">
@@ -379,7 +371,7 @@ if (isset($_GET['error_msg_odeme'])) {
                         </div>
                         <div class="payment-method-body">
                             <div class="form-group">
-                                <label for="card_number" style="display:none;">Kart Numarası</label> <!-- Ekran okuyucular için gizli label -->
+                                <label for="card_number" style="display:none;">Kart Numarası</label>
                                 <div class="input-wrapper">
                                     <input type="text" id="card_number" name="card_number" placeholder="Kart numarası" value="4545 4545 4545 4545" required pattern="\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}" title="Lütfen geçerli bir 16 haneli kart numarası girin.">
                                     <svg class="icon-svg icon-svg--lock icon-svg--size-16 form__icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M11 6V4.2C11 2.4 9.7 1 8 1S5 2.4 5 4.2V6H4v7h8V6h-1zm-1.5 0V4.2c0-.8.7-1.7 2.5-1.7S10 3.4 10 4.2V6h1.5z"></path></svg>
@@ -402,7 +394,7 @@ if (isset($_GET['error_msg_odeme'])) {
                             </div>
                             <div class="form-group">
                                 <label for="card_name" style="display:none;">Kart Üzerindeki İsim</label>
-                                <input type="text" id="card_name" name="card_name" placeholder="Kart üzerindeki isim" value="<?php echo htmlspecialchars($user_ad . ' ' . $user_soyad); ?>" required>
+                                <input type="text" id="card_name" name="card_name" placeholder="Kart üzerindeki isim" value="<?php echo htmlspecialchars($user_ad_form . ' ' . $user_soyad_form); ?>" required>
                             </div>
                              <label class="checkbox-group">
                                 <input type="checkbox" name="use_shipping_as_billing" checked> Fatura adresi olarak teslimat adresini kullan
@@ -434,7 +426,7 @@ if (isset($_GET['error_msg_odeme'])) {
             </div>
             <?php endforeach; ?>
 
-            <form action="#" method="post" class="discount-code-form" onsubmit="return false;"> <!-- İndirim kodu formu şimdilik bir yere gitmiyor -->
+            <form action="#" method="post" class="discount-code-form" onsubmit="return false;">
                 <input type="text" name="discount_code" placeholder="Hediye kartı veya indirim kodu">
                 <button type="submit">Uygula</button>
             </form>
@@ -466,7 +458,6 @@ if (isset($_GET['error_msg_odeme'])) {
         </div>
     </footer>
     <script>
-        // Kredi kartı girişi için basit formatlama ve doğrulama (isteğe bağlı)
         document.addEventListener('DOMContentLoaded', function () {
             const cardNumberInput = document.getElementById('card_number');
             const expiryDateInput = document.getElementById('expiry_date');
@@ -474,7 +465,7 @@ if (isset($_GET['error_msg_odeme'])) {
 
             if(cardNumberInput) {
                 cardNumberInput.addEventListener('input', function (e) {
-                    let value = e.target.value.replace(/\D/g, ''); // Sadece rakamları al
+                    let value = e.target.value.replace(/\D/g, '');
                     let formattedValue = '';
                     for (let i = 0; i < value.length; i++) {
                         if (i > 0 && i % 4 === 0) {
@@ -482,7 +473,7 @@ if (isset($_GET['error_msg_odeme'])) {
                         }
                         formattedValue += value[i];
                     }
-                    e.target.value = formattedValue.substring(0, 19); // Maksimum 16 rakam + 3 boşluk
+                    e.target.value = formattedValue.substring(0, 19);
                 });
             }
 
@@ -501,7 +492,7 @@ if (isset($_GET['error_msg_odeme'])) {
             
             if(cvvInput) {
                  cvvInput.addEventListener('input', function(e) {
-                    e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4); // En fazla 4 rakam
+                    e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
                 });
             }
         });
