@@ -222,7 +222,7 @@ if(isset($_GET['error_msg_odeme'])) {
     <header class="header">
         <div class="logo-container">
             <a href="index.php"><img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo"></a>
-            <a href="index.php" class="logo-text">AŞIKZADE</a>
+            <a href="index.php" class="logo-text"></a>
         </div>
         <nav class="main-nav">
             <div class="user-actions-group">

@@ -492,7 +492,7 @@ if ($user_id_for_query) {
                         <span><?php echo nl2br(htmlspecialchars(!empty($profil_adres) ? $profil_adres : 'Belirtilmemiş')); ?></span>
                     </div>
                     <p style="margin-top:25px; font-size:0.9rem; color: var(--asikzade-gray);">
-                        Profil bilgilerinizi güncellemek veya şifrenizi değiştirmek için lütfen
+                        
                         <a href="mailto:destek@asikzade.com.tr" style="color:var(--asikzade-green);">destek ekibimizle</a> iletişime geçin.
                     </p>
                 </div>
