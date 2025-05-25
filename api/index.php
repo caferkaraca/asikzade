@@ -35,25 +35,16 @@
             left: 0;
             width: 100%;
             height: 100%;
-            /* BURAYA İSTEDİĞİNİZ BOYA RENGİNİ GİRİN */
-            background-color: #4A0D66; /* Örnek: Koyu Mor bir renk */
-            /* background-color: #D93B26; */ /* Örnek: Koyu Turuncu/Kırmızı bir renk */
-            /* background-color: #006470; */ /* Örnek: Koyu Teal bir renk */
+            /* DEĞİŞTİRİLEN RENK */
+            background-color: #fef6e6; /* Ana site içerik arka planı */
             
-            /* Başlangıçta tamamen görünmez ve ekranın dışında gibi */
-            clip-path: circle(0% at 50% 50%); /* Merkezden %0 büyüklüğünde bir daire */
-            /* Veya farklı bir başlangıç noktası: */
-            /* clip-path: circle(0% at 0% 100%); */ /* Sol alttan */
-            /* clip-path: circle(0% at 100% 0%); */ /* Sağ üstten */
-            
-            transition: clip-path 1.2s cubic-bezier(0.7, 0, 0.3, 1); /* Yumuşak ve dinamik bir yayılma */
-            z-index: 10; /* Videonun üzerinde, her şeyin üzerinde */
-            pointer-events: none; /* Üzerindeki tıklamaları engellemesin (gerekirse) */
+            clip-path: circle(0% at 50% 50%); 
+            transition: clip-path 1.2s cubic-bezier(0.7, 0, 0.3, 1); 
+            z-index: 10; 
+            pointer-events: none; 
         }
 
         #paint-transition-overlay.active {
-            /* Ekranı tamamen kaplayacak kadar büyük bir daire */
-            /* %150, köşegenleri de kaplamayı garanti eder */
             clip-path: circle(150% at 50% 50%); 
         }
     </style>
@@ -72,16 +63,12 @@
         document.addEventListener('DOMContentLoaded', () => {
             const video = document.getElementById('introVideo');
             const paintOverlay = document.getElementById('paint-transition-overlay');
-            const redirectTo = 'anasayfa.php';
-            // CSS'teki transition süresiyle aynı olmalı (milisaniye)
-            const transitionDuration = 1200; 
+            const redirectTo = 'anasayfa.php'; // Yönlendirilecek sayfa
+            const transitionDuration = 1200; // CSS ile aynı (milisaniye)
 
             if (video && paintOverlay) {
                 video.onended = function() {
-                    // Boya yayılma animasyonunu başlat
                     paintOverlay.classList.add('active');
-
-                    // Yayılma animasyonu bittikten sonra yönlendir
                     setTimeout(() => {
                         window.location.href = redirectTo;
                     }, transitionDuration);
@@ -89,8 +76,6 @@
 
                 video.play().catch(error => {
                     console.warn("Video otomatik oynatma engellenmiş olabilir.", error);
-                    // Oynatma başlamazsa diye güvenlik önlemi:
-                    // Belirli bir süre sonra yine de geçişi tetikle
                     let fallbackTimeout = setTimeout(() => {
                         if (video.paused && video.currentTime === 0 && !paintOverlay.classList.contains('active')) {
                              console.log("Video oynatılamadı, geçiş animasyonu ve yönlendirme tetikleniyor.");
@@ -99,9 +84,9 @@
                                  window.location.href = redirectTo;
                              }, transitionDuration);
                         }
-                    }, 5000); // 5 saniye sonra kontrol et
+                    }, 5000); 
 
-                    video.onplay = () => { // Video oynamaya başlarsa fallback'i iptal et
+                    video.onplay = () => { 
                         clearTimeout(fallbackTimeout);
                     };
                 });

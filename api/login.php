@@ -128,7 +128,7 @@ unset($_SESSION['error_message'], $_SESSION['success_message']);
         <div class="logo-container">
              <a href="index.php" style="display: flex; align-items: center; text-decoration: none;">
                 <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo" id="headerLogoImage">
-                <span class="logo-text" id="siteLogoTextMawa">AŞIKZADE</span>
+                <span class="logo-text" id="siteLogoTextMawa"></span>
             </a>
         </div>
         <nav class="main-nav">

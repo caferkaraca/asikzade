@@ -143,7 +143,7 @@ unset($_SESSION['error_message'], $_SESSION['success_message']);
     <header class="header" id="mainHeader">
         <div class="logo-container">
             <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo" id="headerLogoImage">
-            <span class="logo-text" id="siteLogoTextMawa">AŞIKZADE</span>
+            <span class="logo-text" id="siteLogoTextMawa"></span>
         </div>
         <nav class="main-nav">
             <div class="user-actions-group">

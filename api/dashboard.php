@@ -317,7 +317,7 @@ if ($user_id_for_query) { // user_id varsa devam et
     <header class="header" id="mainHeader">
         <div class="logo-container">
             <a href="index.php"><img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo"></a>
-            <a href="index.php" class="logo-text">AŞIKZADE</a>
+            <a href="index.php" class="logo-text"></a>
         </div>
         <nav class="main-nav">
             <div class="user-actions-group">
@@ -442,7 +442,7 @@ if ($user_id_for_query) { // user_id varsa devam et
                         <span><?php echo nl2br(htmlspecialchars(!empty($profil_adres) ? $profil_adres : 'Belirtilmemiş')); ?></span>
                     </div>
                     <p style="margin-top:25px; font-size:0.9rem; color: var(--asikzade-gray);">
-                        Profil bilgilerinizi (telefon, adres vb.) güncellemek için lütfen <a href="mailto:destek@asikzade.com.tr" style="color:var(--asikzade-green);">destek ekibimizle</a> iletişime geçin.
+                        <a href="mailto:destek@asikzade.com.tr" style="color:var(--asikzade-green);">destek ekibimizle</a> iletişime geçin.
                     </p>
                 </div>
             </section>
