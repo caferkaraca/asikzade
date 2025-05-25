@@ -4,28 +4,59 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-require_once 'config.php'; // Yolunu kontrol edin
+// config.php'yi dahil et (Supabase sabitleri ve API fonksiyonu için)
+// Bu dosyanın session_start() ÇAĞIRMAMASI gerekir.
+require_once __DIR__ . '/config.php';
 
 if (file_exists(__DIR__ . '/products_data.php')) {
     include __DIR__ . '/products_data.php';
 } else {
-    $_SESSION['error_message_odeme'] = "Ürün verileri yüklenemedi.";
     error_log("odeme_process.php: products_data.php bulunamadı.");
-    header('Location: odeme.php'); // Yolunu kontrol edin
+    // odeme.php'ye URL parametresi ile hata gönder
+    header('Location: odeme.php?error_msg_odeme=' . urlencode("Ürün verileri yüklenemedi."));
     exit;
 }
 
 // 1. GİRİŞ VE İSTEK KONTROLÜ
 //-----------------------------------------------------------------------------
-if (!isset($_SESSION['user_id'])) {
-    $_SESSION['error_message'] = "Ödeme işlemi için lütfen önce giriş yapın.";
-    header('Location: login.php'); // Yolunu kontrol edin
+$user_logged_in = false;
+$user_id_from_post = null; // Formdan gelen kullanıcı ID'si için
+$user_cookie_name = 'asikzade_user_session'; // Kullanıcı session cookie'sinin adı
+
+// Önce POST'tan user_id_field'ı kontrol et (odeme.php'den gönderilen)
+if (isset($_POST['user_id_field']) && !empty($_POST['user_id_field'])) {
+    $user_id_from_post = $_POST['user_id_field'];
+    // Güvenlik için, bu ID'nin cookie'deki ID ile eşleştiğini de kontrol edebiliriz
+    if (isset($_COOKIE[$user_cookie_name])) {
+        $user_data_json = $_COOKIE[$user_cookie_name];
+        $user_data = json_decode($user_data_json, true);
+        if ($user_data && isset($user_data['user_id']) && $user_data['user_id'] === $user_id_from_post) {
+            $user_logged_in = true;
+        } else {
+             error_log("odeme_process.php: Cookie'deki user_id ile POST'taki user_id_field eşleşmiyor veya cookie yok.");
+             // Kullanıcıyı login'e yönlendir
+        }
+    } else {
+        error_log("odeme_process.php: user_id_field POST edildi ama asikzade_user_session cookie'si bulunamadı.");
+        // Kullanıcıyı login'e yönlendir
+    }
+} else {
+     error_log("odeme_process.php: user_id_field POST edilmedi.");
+     // Kullanıcıyı login'e yönlendir
+}
+
+
+if (!$user_logged_in) {
+    $login_redirect_params = [
+        'error_msg' => urlencode("Ödeme işlemi için lütfen önce giriş yapın."),
+        'redirect_after_login' => 'odeme.php' // Giriş sonrası ödeme sayfasına dön
+    ];
+    header('Location: login.php?' . http_build_query($login_redirect_params));
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    $_SESSION['error_message_odeme'] = "Geçersiz istek türü.";
-    header('Location: odeme.php');
+    header('Location: odeme.php?error_msg_odeme=' . urlencode("Geçersiz istek türü."));
     exit;
 }
 
@@ -33,30 +64,33 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 //-----------------------------------------------------------------------------
 $cart_cookie_data = isset($_COOKIE['asikzade_cart']) ? json_decode($_COOKIE['asikzade_cart'], true) : null;
 if (empty($cart_cookie_data) || !is_array($cart_cookie_data) || count($cart_cookie_data) === 0) {
-    $_SESSION['error_message_odeme'] = "Sepetiniz boş. Lütfen ödeme yapmadan önce sepetinize ürün ekleyin.";
-    header('Location: sepet.php'); // Yolunu kontrol edin
+    // Sepet boşsa, sepet.php'ye URL parametresi ile hata gönder
+    header('Location: sepet.php?error_msg=' . urlencode("Sepetiniz boş. Lütfen ödeme yapmadan önce sepetinize ürün ekleyin."));
     exit;
 }
 
 // 3. FORM VERİLERİNİ ALMA VE TEMEL DOĞRULAMA
 //-----------------------------------------------------------------------------
-$country = trim($_POST['country'] ?? 'TR');
-$first_name = trim($_POST['first_name'] ?? '');
-$last_name = trim($_POST['last_name'] ?? '');
-$address_line1 = trim($_POST['address'] ?? '');
-$address_line2 = trim($_POST['apt_suite'] ?? '');
-$city = trim($_POST['city'] ?? '');
-$province = trim($_POST['province'] ?? '');
-$postal_code = trim($_POST['postal_code'] ?? '');
-$phone = trim($_POST['phone'] ?? '');
-$payment_method = $_POST['payment_method'] ?? 'credit_card';
+$country = trim($_POST['ulke'] ?? 'TR'); // odeme.php'de 'name="ulke"' olarak güncellenmişti
+$first_name = trim($_POST['ad'] ?? '');       // 'name="ad"'
+$last_name = trim($_POST['soyad'] ?? '');      // 'name="soyad"'
+$address_line1 = trim($_POST['adres_satiri1'] ?? ''); // 'name="adres_satiri1"'
+$address_line2 = trim($_POST['adres_satiri2'] ?? ''); // 'name="adres_satiri2"'
+$city = trim($_POST['sehir'] ?? '');        // 'name="sehir"'
+$province = trim($_POST['ilce'] ?? '');       // 'name="ilce"'
+$postal_code = trim($_POST['posta_kodu'] ?? '');// 'name="posta_kodu"'
+$phone = trim($_POST['telefon'] ?? '');     // 'name="telefon"'
+$payment_method_radio = $_POST['payment_method_radio'] ?? 'credit_card'; // odeme.php'de 'name="payment_method_radio"' idi
 
+// Kart bilgileri (dummy, gerçek bir ödeme entegrasyonu olmadan)
 $card_number_dummy = $_POST['card_number'] ?? '';
 $card_expiry_dummy = $_POST['expiry_date'] ?? '';
 $card_cvv_dummy = $_POST['cvv'] ?? '';
 $card_name_dummy = $_POST['card_name'] ?? '';
 
-$_SESSION['form_data_odeme'] = $_POST;
+// Form verilerini URL'ye eklemek çok uzun olacağı için, hata durumunda
+// odeme.php boş formla açılacak, sadece hata mesajı gösterilecek.
+// Gerekirse, sadece e-posta gibi kritik bir alan URL ile geri gönderilebilir.
 
 $errors = [];
 if (empty($first_name)) $errors[] = "Ad alanı zorunludur.";
@@ -66,16 +100,17 @@ if (empty($city)) $errors[] = "Şehir alanı zorunludur.";
 if (empty($province)) $errors[] = "İlçe alanı zorunludur.";
 if (empty($phone)) $errors[] = "Telefon numarası zorunludur.";
 
-if ($payment_method === 'credit_card') {
+if ($payment_method_radio === 'credit_card') {
     if (empty($card_number_dummy)) $errors[] = "Kart numarası zorunludur.";
+    // Burada daha detaylı kart no, son kullanma tarihi, cvv format doğrulaması yapılabilir.
     if (empty($card_expiry_dummy)) $errors[] = "Son kullanma tarihi zorunludur.";
     if (empty($card_cvv_dummy)) $errors[] = "CVV zorunludur.";
     if (empty($card_name_dummy)) $errors[] = "Kart üzerindeki isim zorunludur.";
 }
 
 if (!empty($errors)) {
-    $_SESSION['error_message_odeme'] = implode("<br>", $errors);
-    header('Location: odeme.php');
+    $error_query_param = http_build_query(['error_msg_odeme' => implode("<br>", $errors)]);
+    header('Location: odeme.php?' . $error_query_param);
     exit;
 }
 
@@ -85,9 +120,8 @@ $calculated_sub_total = 0;
 $order_items_for_db = [];
 
 if (!isset($products) || !is_array($products) || empty($products)) {
-    $_SESSION['error_message_odeme'] = "Ürün listesi yüklenemedi. Sipariş oluşturulamıyor.";
-    error_log("odeme_process.php: \$products dizisi boş veya tanımlı değil.");
-    header('Location: odeme.php');
+    error_log("odeme_process.php: \$products dizisi boş veya tanımlı değil (satır " . __LINE__ . ").");
+    header('Location: odeme.php?error_msg_odeme=' . urlencode("Ürün listesi yüklenemedi. Sipariş oluşturulamıyor."));
     exit;
 }
 
@@ -98,8 +132,7 @@ foreach ($cart_cookie_data as $item_id_from_cookie => $item_data_from_cookie) {
         
         if (!isset($product_info['price']) || !is_numeric($product_info['price'])) {
             error_log("odeme_process.php: Product ID $item_id_from_cookie için geçersiz fiyat. Product data: " . print_r($product_info, true));
-            $_SESSION['error_message_odeme'] = "Ürün fiyatlandırmasında bir sorun oluştu (" . htmlspecialchars($product_info['name'] ?? $item_id_from_cookie) . ").";
-            header('Location: odeme.php');
+            header('Location: odeme.php?error_msg_odeme=' . urlencode("Ürün fiyatlandırmasında bir sorun oluştu (" . htmlspecialchars($product_info['name'] ?? $item_id_from_cookie) . ")."));
             exit;
         }
         $item_price = (float)$product_info['price'];
@@ -107,23 +140,27 @@ foreach ($cart_cookie_data as $item_id_from_cookie => $item_data_from_cookie) {
         $calculated_sub_total += $item_subtotal;
 
         $order_items_for_db[] = [
+            // 'urun_id' => $item_id_from_cookie, // Eğer siparis_urunleri tablosunda urun_id tutuyorsanız
             'urun_adi' => $product_info['name'],
             'miktar' => $quantity,
             'birim_fiyat' => $item_price,
-            'ara_toplam' => $item_subtotal // Bu, siparis_urunleri tablosu için
+            'ara_toplam' => $item_subtotal
         ];
+    } else {
+        error_log("odeme_process.php: Sepetteki ürün ID'si ($item_id_from_cookie) products_data içinde bulunamadı veya miktar bilgisi eksik.");
     }
 }
 
 if (empty($order_items_for_db)) {
-    $_SESSION['error_message_odeme'] = "Sipariş oluşturulacak geçerli ürün bulunamadı.";
-    header('Location: odeme.php');
+    error_log("odeme_process.php: Hesaplama sonrası sipariş oluşturulacak geçerli ürün bulunamadı.");
+    header('Location: odeme.php?error_msg_odeme=' . urlencode("Sipariş oluşturulacak geçerli ürün bulunamadı. Sepetinizi kontrol edin."));
     exit;
 }
 
 $shipping_cost_calculated = 50.00;
-$taxes_calculated = $calculated_sub_total * 0.18; // Bu KDV sadece hesaplama için, DB'ye yazılmayacak
-$grand_total_calculated = $calculated_sub_total + $shipping_cost_calculated + $taxes_calculated; // DB'ye yazılacak olan toplam tutar
+$kdv_orani_calculated = 0.20; // odeme.php'deki ile aynı olmalı
+$taxes_calculated = $calculated_sub_total * $kdv_orani_calculated;
+$grand_total_calculated = $calculated_sub_total + $shipping_cost_calculated + $taxes_calculated;
 
 // 5. TESLİMAT ADRESİNİ BİRLEŞTİRME
 //-----------------------------------------------------------------------------
@@ -133,67 +170,71 @@ if (!empty($address_line2)) {
     $full_delivery_address .= "\n" . $address_line2;
 }
 $full_delivery_address .= "\n" . $province . " / " . $city . (!empty($postal_code) ? (", " . $postal_code) : "");
-$full_delivery_address .= "\n" . $country;
+$full_delivery_address .= "\n" . $country; // 'ulke' olarak alınmıştı, 'country' kullanılabilir
 $full_delivery_address .= "\nTelefon: " . $phone;
 
-// 6. ÖDEME İŞLEMİ (VARSIYIMSAL)
+// 6. ÖDEME İŞLEMİ (VARSIYIMSAL - GERÇEK ÖDEME GATEWAY ENTEGRASYONU GEREKİR)
 //-----------------------------------------------------------------------------
-$payment_successful = true;
-// $payment_transaction_id = "DUMMY_TRANS_" . strtoupper(bin2hex(random_bytes(8)));
+// Bu kısım bir ödeme ağ geçidi (örn: Iyzico, PayTR, Stripe) ile entegre edilmelidir.
+// Şimdilik başarılı varsayıyoruz.
+$payment_successful = true; 
+$payment_transaction_id = "DUMMY_TRANS_" . strtoupper(bin2hex(random_bytes(8))); // Sahte işlem ID'si
 
 if (!$payment_successful) {
-    $_SESSION['error_message_odeme'] = "Ödeme işlemi sırasında bir hata oluştu.";
-    header('Location: odeme.php');
+    // Ödeme başarısızsa, odeme.php'ye hata mesajı ile yönlendir
+    header('Location: odeme.php?error_msg_odeme=' . urlencode("Ödeme işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin veya farklı bir kart kullanın."));
     exit;
 }
 
 // 7. SİPARİŞİ VERİTABANINA KAYDETME
 //-----------------------------------------------------------------------------
-$kullanici_id_from_session = $_SESSION['user_id'];
+// Kullanıcı ID'si POST'tan alınan $user_id_from_post kullanılacak.
 
 $orderDataForSupabase = [
-    'kullanici_id' => $kullanici_id_from_session,
-    'toplam_tutar' => (float)number_format($grand_total_calculated, 2, '.', ''), // Sadece bu toplam tutar var
-    'siparis_durumu' => 'hazırlanıyor',
+    'kullanici_id' => $user_id_from_post, // Formdan gelen doğrulanmış kullanıcı ID'si
+    'toplam_tutar' => (float)number_format($grand_total_calculated, 2, '.', ''), // İki ondalık basamak
+    'siparis_durumu' => 'beklemede', // Yeni sipariş durumu 'beklemede' olabilir.
     'teslimat_adresi' => $full_delivery_address,
-    'odeme_yontemi' => $payment_method,
-    // 'alt_toplam', 'kargo_ucreti', 'vergiler' alanları ÇIKARILDI
-    // 'odeme_islem_id' => $payment_transaction_id ?? null,
+    'odeme_yontemi' => $payment_method_radio, // Kullanıcının seçtiği ödeme yöntemi
+    'odeme_islem_id' => $payment_transaction_id, // Gerçek ödeme gateway'inden gelen işlem ID'si
+    // Supabase şemanızda bu alanlar varsa:
+    // 'alt_toplam' => (float)number_format($calculated_sub_total, 2, '.', ''),
+    // 'kargo_ucreti' => (float)number_format($shipping_cost_calculated, 2, '.', ''),
+    // 'vergiler' => (float)number_format($taxes_calculated, 2, '.', ''),
 ];
 
 error_log("odeme_process.php - Ana Sipariş Payload Gönderiliyor: " . json_encode($orderDataForSupabase));
 
-$siparisEkleResult = supabase_api_request(
-    'POST',
-    '/rest/v1/siparisler',
-    $orderDataForSupabase,
-    [],
-    false
-);
-
-if (!empty($siparisEkleResult['error']) || empty($siparisEkleResult['data'])) {
-    $db_error_message = $siparisEkleResult['error']['message'] ?? ($siparisEkleResult['data']['message'] ?? 'Bilinmeyen bir veritabanı hatası.');
-    $_SESSION['error_message_odeme'] = "Siparişiniz oluşturulurken bir veritabanı hatası oluştu: " . htmlspecialchars($db_error_message);
-    error_log("Supabase Order Insert Error: " . $db_error_message . " | HTTP Code: " . ($siparisEkleResult['http_code'] ?? 'N/A') . " | Sent Data: " . json_encode($orderDataForSupabase) . " | Response: " . json_encode($siparisEkleResult));
-    header('Location: odeme.php');
+// Eğer config.php'de supabase_api_request tanımlıysa onu kullanın.
+// Tanımlı değilse ve önceki admin_config.php'deki gibi bir fonksiyonunuz varsa onu dahil edin.
+if (!function_exists('supabase_api_request')) {
+    error_log("odeme_process.php: supabase_api_request fonksiyonu bulunamadı. Lütfen config.php veya ilgili helper dosyasını kontrol edin.");
+    header('Location: odeme.php?error_msg_odeme=' . urlencode("Sistem hatası: API bağlantısı kurulamadı."));
     exit;
 }
 
-$createdOrderData = $siparisEkleResult['data'];
-$yeni_siparis_id = null;
-if (is_array($createdOrderData) && count($createdOrderData) > 0 && isset($createdOrderData[0]['id'])) {
-    $yeni_siparis_id = $createdOrderData[0]['id'];
-} elseif (is_object($createdOrderData) && isset($createdOrderData->id)) {
-    $yeni_siparis_id = $createdOrderData->id;
-} elseif (isset($createdOrderData['id'])) {
-     $yeni_siparis_id = $createdOrderData['id'];
+$siparisEkleResult = supabase_api_request(
+    'POST',
+    '/rest/v1/siparisler', // Supabase tablo adınız
+    $orderDataForSupabase,
+    [], // Ekstra header yok
+    false // Anonim anahtar ile (veya RLS'e göre kullanıcı kendi siparişini ekleyebilmeli)
+          // Eğer service_role key gerekiyorsa true yapın
+);
+
+if (!empty($siparisEkleResult['error']) || empty($siparisEkleResult['data']) || !isset($siparisEkleResult['data'][0]['id'])) {
+    $db_error_message = $siparisEkleResult['error']['message'] ?? ($siparisEkleResult['data']['message'] ?? 'Bilinmeyen bir veritabanı hatası.');
+    error_log("Supabase Order Insert Error: " . $db_error_message . " | HTTP Code: " . ($siparisEkleResult['http_code'] ?? 'N/A') . " | Sent Data: " . json_encode($orderDataForSupabase) . " | Response: " . json_encode($siparisEkleResult));
+    header('Location: odeme.php?error_msg_odeme=' . urlencode("Siparişiniz oluşturulurken bir veritabanı hatası oluştu: " . htmlspecialchars($db_error_message)));
+    exit;
 }
 
+$createdOrderDataArray = $siparisEkleResult['data'];
+$yeni_siparis_id = $createdOrderDataArray[0]['id']; // Supabase genellikle bir dizi içinde tek bir nesne döndürür
 
 if (!$yeni_siparis_id) {
-    $_SESSION['error_message_odeme'] = "Siparişiniz oluşturuldu ancak sipariş numarası alınamadı.";
-    error_log("Supabase Order Insert - Missing Order ID. Response: " . json_encode($createdOrderData));
-    header('Location: odeme.php');
+    error_log("Supabase Order Insert - Missing Order ID. Response: " . json_encode($createdOrderDataArray));
+    header('Location: odeme.php?error_msg_odeme=' . urlencode("Siparişiniz oluşturuldu ancak sipariş numarası alınamadı. Lütfen yönetici ile iletişime geçin."));
     exit;
 }
 
@@ -203,46 +244,48 @@ foreach ($order_items_for_db as $item) {
     $orderItemData = [
         'siparis_id' => $yeni_siparis_id,
         'urun_adi' => $item['urun_adi'],
+        // 'urun_id' => $item['urun_id'], // Eğer urun_id'yi de saklıyorsanız
         'miktar' => (int)$item['miktar'],
         'birim_fiyat' => (float)number_format($item['birim_fiyat'], 2, '.', ''),
-        'ara_toplam' => (float)number_format($item['ara_toplam'], 2, '.', '') // Bu, siparis_urunleri tablosu için hala gerekli
+        'ara_toplam' => (float)number_format($item['ara_toplam'], 2, '.', '')
     ];
 
     error_log("odeme_process.php - Sipariş Ürünü Payload Gönderiliyor: " . json_encode($orderItemData));
     
     $itemInsertResult = supabase_api_request(
         'POST',
-        '/rest/v1/siparis_urunleri',
+        '/rest/v1/siparis_urunleri', // Supabase sipariş ürünleri tablo adınız
         $orderItemData,
         [],
-        false
+        false // veya true, RLS'e bağlı
     );
 
     if (!empty($itemInsertResult['error'])) {
         $siparisUrunleriKayitHatasi = true;
         $item_error_message = $itemInsertResult['error']['message'] ?? ($itemInsertResult['data']['message'] ?? "Ürün ({$item['urun_adi']}) siparişe eklenemedi.");
         error_log("Supabase Order Item Insert Error for order ID $yeni_siparis_id, product '{$item['urun_adi']}': " . $item_error_message . " | HTTP Code: " . ($itemInsertResult['http_code'] ?? 'N/A') . " | Response: " . json_encode($itemInsertResult));
-        $_SESSION['error_message_odeme'] = "Sipariş detayları kaydedilirken bir sorun oluştu: " . htmlspecialchars($item_error_message) . ". Sipariş No: #" . htmlspecialchars(substr($yeni_siparis_id,0,8));
-        // Hata oluşursa döngüden çık ve kullanıcıyı bilgilendir.
-        // Bu durumda ana sipariş oluşmuş ama ürünler eklenememiş olabilir.
-        // Daha gelişmiş bir senaryoda, ana siparişi de silmek (rollback) veya durumunu güncellemek gerekebilir.
-        break; 
+        
+        // Hata durumunda kullanıcıya bilgi ver ve odeme.php'ye yönlendir.
+        // Bu durumda ana sipariş kaydı oluşmuş olabilir, ürünler eklenememiş olabilir.
+        // Daha karmaşık bir senaryoda, ana sipariş kaydını silmek (rollback) veya
+        // durumunu "hatalı" gibi bir değere güncellemek gerekebilir.
+        header('Location: odeme.php?error_msg_odeme=' . urlencode("Sipariş detayları kaydedilirken bir sorun oluştu: " . htmlspecialchars($item_error_message) . ". Lütfen destek ekibimizle iletişime geçin. Sipariş No: #" . htmlspecialchars(substr($yeni_siparis_id,0,8))));
+        exit; 
     }
 }
 
-if ($siparisUrunleriKayitHatasi) {
-    // Hata mesajı zaten session'da ayarlandı, odeme.php'ye yönlendir.
-    header('Location: odeme.php');
-    exit;
-}
+// $siparisUrunleriKayitHatasi zaten yukarıda break ile çıkıldığı için burada tekrar kontrol etmeye gerek yok.
 
 // 8. BAŞARILI SİPARİŞ SONRASI İŞLEMLER
 //-----------------------------------------------------------------------------
 setcookie('asikzade_cart', '', time() - 3600, "/"); // Sepet cookie'sini sil
-unset($_SESSION['form_data_odeme']); // Form verilerini session'dan temizle
 
-$_SESSION['success_message_dashboard'] = "Siparişiniz başarıyla oluşturuldu! Sipariş Numaranız: <strong>#" . htmlspecialchars(substr($yeni_siparis_id,0,8)) . "</strong>";
-header('Location: dashboard.php?tab=siparislerim'); // Kullanıcıyı siparişlerim sekmesine yönlendir
+// Başarı mesajını dashboard.php'ye URL parametresi ile gönder
+$dashboard_redirect_params = [
+    'tab' => 'siparislerim',
+    'success_msg_dashboard' => urlencode("Siparişiniz başarıyla oluşturuldu! Sipariş Numaranız: <strong>#" . htmlspecialchars(substr($yeni_siparis_id,0,8)) . "</strong>")
+];
+header('Location: dashboard.php?' . http_build_query($dashboard_redirect_params));
 exit;
 
 ?>
