@@ -26,13 +26,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Kullanıcıyı e-posta ile veritabanından bul
     $path = '/rest/v1/kullanicilar?select=' . rawurlencode('id,ad,soyad,email,sifre_hash') . '&email=eq.' . rawurlencode($email);
-    $userQueryResult = supabase_api_request(
-        'GET',
-        $path,
-        [],    // $data: GET isteği için boş dizi
-        [],    // $custom_headers: Boş dizi
-        false  // $use_service_key: Giriş için anonim anahtar kullanılacak (false)
-    );
+$userQueryResult = supabase_api_request(
+    'GET',
+    $path,
+    [],
+    [],
+    true  // $use_service_key: SERVICE ROLE KEY KULLAN
+);
 
     if (!empty($userQueryResult['error'])) { // Hata kontrolünü önce yap
         $_SESSION['error_message'] = "Kullanıcı bilgileri alınırken bir hata oluştu: " . ($userQueryResult['error']['message'] ?? 'Bilinmeyen API hatası');
