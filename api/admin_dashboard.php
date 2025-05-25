@@ -1,10 +1,11 @@
 <?php
-require_once 'admin_config.php';
+require_once 'admin_config.php'; // supabase_api_request() ve GÜNCELLENMİŞ admin_check_login() burada olmalı
 
-$current_admin_user = admin_check_login();
+$current_admin_user = admin_check_login(); // Yetkisiz erişimi engelle, returns user data or redirects
 
-$admin_email_display = 'Admin';
-$admin_id_from_cookie = null;
+// Admin bilgilerini $current_admin_user'dan al
+$admin_email_display = 'Admin'; // Varsayılan
+$admin_id_from_cookie = null;   // Varsayılan
 
 if ($current_admin_user && isset($current_admin_user['admin_email'])) {
     $admin_email_display = $current_admin_user['admin_email'];
@@ -13,14 +14,16 @@ if ($current_admin_user && isset($current_admin_user['admin_id'])) {
     $admin_id_from_cookie = $current_admin_user['admin_id'];
 }
 
-// products_data.php'yi DAHİL ETME (PHP test bloğundan ÖNCE)
-if (file_exists(__DIR__ . '/products_data.php')) { // __DIR__ ile daha güvenli yol
-    include __DIR__ . '/products_data.php';
+// products_data.php'nin yolunu __DIR__ ile birleştirerek daha güvenli hale getirelim.
+$products_data_path = __DIR__ . '/products_data.php';
+if (file_exists($products_data_path)) {
+    include $products_data_path;
 } else {
-    // $products'ın tanımlı olmaması durumunu test bloğu zaten yakalayacak
-    // error_log("admin_dashboard.php: products_data.php dosyası bulunamadı.");
+    $products = [];
+    error_log("admin_dashboard.php: products_data.php bulunamadı. Beklenen yol: " . $products_data_path);
 }
 
+// URL'den başarı/hata mesajlarını al
 $success_message = null;
 $error_message = null;
 if (isset($_GET['success_msg'])) {
@@ -32,11 +35,15 @@ if (isset($_GET['error_msg'])) {
 $current_get_params = $_GET;
 unset($current_get_params['success_msg'], $current_get_params['error_msg']);
 
+
+// --- SİPARİŞ DURUMU GÜNCELLEME İŞLEMİ ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'guncelle_siparis_durumu') {
     $siparis_id_guncelle = $_POST['siparis_id_guncelle'] ?? null;
     $yeni_durum = $_POST['yeni_siparis_durumu'] ?? null;
     $gecerli_durumlar = ['beklemede', 'hazırlanıyor', 'gönderildi', 'teslim edildi', 'iptal edildi'];
+
     $redirect_params_after_update = $current_get_params;
+
     if ($siparis_id_guncelle && $yeni_durum && in_array($yeni_durum, $gecerli_durumlar)) {
         $updateData = ['siparis_durumu' => $yeni_durum];
         $updateResult = supabase_api_request('PATCH', '/rest/v1/siparisler?id=eq.' . $siparis_id_guncelle, $updateData, [], true);
@@ -53,16 +60,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
+// Filtreleme ve arama için değerleri al
 $search_query = trim($_GET['q'] ?? '');
 $filter_status = $_GET['status'] ?? '';
 $current_page = max(1, intval($_GET['page'] ?? 1));
 $items_per_page = 10;
 $offset = ($current_page - 1) * $items_per_page;
 
+// --- SİPARİŞLERİ ÇEKME ---
 $base_api_path = '/rest/v1/siparisler';
 $select_fields = 'id,kullanici_id,siparis_tarihi,toplam_tutar,siparis_durumu,teslimat_adresi,kullanicilar(email,ad,soyad)';
 $api_params_array = [];
 $count_api_params_array = [];
+
 $search_error_occurred = false;
 
 if (!empty($search_query)) {
@@ -89,6 +99,7 @@ if (!$search_error_occurred) {
         $count_query_string = '&' . implode('&', $count_api_params_array);
     }
     $countResult = supabase_api_request('GET', $base_api_path . '?select=id' . $count_query_string, [], ['Prefer: count=exact'], true);
+
     if (!$countResult['error'] && isset($countResult['headers']['content-range'])) {
         $range = explode('/', $countResult['headers']['content-range']);
         if(isset($range[1])) $total_orders = intval($range[1]);
@@ -113,7 +124,9 @@ if (!$search_error_occurred) {
         $api_path_paginated .= '&' . implode('&', $api_params_array);
     }
     $api_path_paginated .= '&order=siparis_tarihi.desc&offset=' . $offset . '&limit=' . $items_per_page;
+
     $siparislerResult = supabase_api_request('GET', $api_path_paginated, [], [], true);
+
     if (!$siparislerResult['error'] && !empty($siparislerResult['data'])) {
         $tum_siparisler = $siparislerResult['data'];
     } elseif ($siparislerResult['error'] && !$error_message) {
@@ -121,6 +134,7 @@ if (!$search_error_occurred) {
     }
 }
 
+// --- SİPARİŞ DURUM RAPORU İÇİN VERİ ÇEKME ---
 $order_status_report = [];
 $allOrdersForReportResult = supabase_api_request('GET', '/rest/v1/siparisler?select=siparis_durumu', [], [], true);
 if (!$allOrdersForReportResult['error'] && !empty($allOrdersForReportResult['data'])) {
@@ -140,22 +154,6 @@ foreach($status_order as $status_key) {
         $ordered_status_report[$status_key] = $order_status_report[$status_key];
     }
 }
-
-// --- PHP TEST KODU BAŞLANGIÇ ---
-echo "<pre style='position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; padding:20px; font-size:14px; color:black; overflow:auto;'>";
-echo "PHP \$products DIZISININ DURUMU (Sayfa başında, HTML render edilmeden önce):\n";
-if (isset($products) && is_array($products)) {
-    echo htmlspecialchars(print_r($products, true));
-} elseif (isset($products)) {
-    echo "\$products tanımlı ama bir dizi değil:\n";
-    echo htmlspecialchars(print_r($products, true));
-} else {
-    echo "\$products dizisi bu noktada TANIMSIZ veya bulunamadı.\n";
-}
-echo "</pre>";
-exit; 
-// --- PHP TEST KODU SONU ---
-
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -164,7 +162,7 @@ exit;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Paneli - Sipariş Yönetimi</title>
     <style>
-        /* Kullanıcının verdiği CSS stilleri buraya gelecek */
+        /* Kullanıcının verdiği CSS stilleri buraya gelecek (bir önceki yanıtta vardı) */
         :root { --asikzade-content-bg: #fef6e6; --asikzade-green: #8ba86d; --asikzade-dark-green: #6a8252; --asikzade-dark-text: #2d3e2a; --asikzade-light-text: #fdfcf8; --asikzade-gray: #7a7a7a; --asikzade-border: #e5e5e5; --asikzade-red: #c0392b; --admin-header-height: 70px; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; }
         body { background-color: var(--asikzade-content-bg); color: var(--asikzade-dark-text); line-height: 1.6; display: flex; flex-direction: column; min-height: 100vh; }
@@ -211,7 +209,7 @@ exit;
         <?php endif; ?>
 
         <div class="status-report-cards">
-            <?php $total_all_orders_for_report = array_sum($ordered_status_report); ?>
+             <?php $total_all_orders_for_report = array_sum($ordered_status_report); ?>
             <div class="report-card" style="border-left-color: var(--asikzade-dark-text);">
                 <h4>Toplam Sipariş</h4>
                 <span class="count"><?php echo $total_all_orders_for_report; ?></span>
@@ -403,11 +401,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const orderId = this.getAttribute('data-order-id');
             openModal();
             modalContentDiv.innerHTML = `<p style="text-align:center; padding:20px;">Sipariş #${orderId.substring(0,8)}... detayları yükleniyor...</p>`;
-            
+
             const productsData = <?php echo isset($products) && is_array($products) ? json_encode($products) : '{}'; ?>;
             // --- YENİ TEST KODU BAŞLANGIÇ ---
-console.log("JAVASCRIPT productsData DEĞİŞKENİNİN İÇERİĞİ:", productsData);
-// --- YENİ TEST KODU SONU ---
+            console.log("JAVASCRIPT productsData DEĞİŞKENİNİN İÇERİĞİ:", productsData);
+            // --- YENİ TEST KODU SONU ---
 
             fetch(`get_order_details.php?order_id=${orderId}&admin_view=true`)
                 .then(response => {
@@ -449,19 +447,22 @@ console.log("JAVASCRIPT productsData DEĞİŞKENİNİN İÇERİĞİ:", productsD
                         if (data.items && data.items.length > 0) {
                             detailsHtml += '<h5 style="margin-top:25px; margin-bottom:15px; font-size:1.2rem; color:var(--asikzade-dark-text); padding-bottom:10px; border-bottom:1px solid var(--asikzade-border);">Sipariş İçeriği</h5>';
                             detailsHtml += '<div style="overflow-x:auto;"><table class="modal-order-items-table"><thead><tr><th></th><th>Ürün Adı</th><th>Miktar</th><th>Birim Fiyat</th><th>Ara Toplam</th></tr></thead><tbody>';
-                            
+
                             data.items.forEach(item => {
                                 let imageUrl = 'https://via.placeholder.com/50/e9ecef/6c757d?text=?';
                                 const itemNameFromOrder = item.urun_adi ? String(item.urun_adi).trim() : null;
 
+                                // --- HATA AYIKLAMA KODLARI BAŞLANGIÇ ---
                                 console.log("-------------------------------------");
                                 console.log("SİPARİŞTEN GELEN ÜRÜN ADI:", itemNameFromOrder);
-                                // console.log("productsData TAMAMI:", productsData); // Bu çok büyük olabilir, dikkat!
+                                // console.log("productsData NESNESİ (ilk birkaç anahtar):", Object.keys(productsData).slice(0,5));
+                                // --- HATA AYIKLAMA KODLARI SONU ---
 
                                 if (productsData && itemNameFromOrder) {
                                     for (const key in productsData) {
                                         if (productsData.hasOwnProperty(key)) {
                                             const productNameFromData = String(productsData[key].name).trim();
+                                            // İsimlerin birbirini içerip içermediğini kontrol etmek için küçük harfe çevirerek karşılaştırma:
                                             if (productNameFromData.toLowerCase().includes(itemNameFromOrder.toLowerCase()) || itemNameFromOrder.toLowerCase().includes(productNameFromData.toLowerCase())) {
                                                  console.log(`  Karşılaştırılıyor: '${productNameFromData}' (productsData) vs '${itemNameFromOrder}' (sipariş). Tam Eşleşme: ${productNameFromData === itemNameFromOrder}`);
                                             }
@@ -475,7 +476,7 @@ console.log("JAVASCRIPT productsData DEĞİŞKENİNİN İÇERİĞİ:", productsD
                                 } else {
                                     console.log("productsData veya itemNameFromOrder tanımsız/boş, resim arama atlandı.");
                                 }
-                                
+
                                 detailsHtml += `<tr>
                                     <td><img src="${imageUrl}" alt="${item.urun_adi || 'Ürün'}" class="product-thumbnail"></td>
                                     <td>${item.urun_adi || 'Bilinmeyen Ürün'}</td>
