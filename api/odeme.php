@@ -1,4 +1,28 @@
 <?php
+<?php
+require_once 'config.php';
+include 'products_data.php';
+
+// --- HATA AYIKLAMA BAŞLANGIÇ ---
+error_log('odeme.php: Script basladi.');
+if (isset($_COOKIE['asikzade_cart'])) {
+    error_log('odeme.php: asikzade_cart cookie VAR: ' . $_COOKIE['asikzade_cart']);
+    $cart_cookie_data_debug = json_decode($_COOKIE['asikzade_cart'], true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        error_log('odeme.php: asikzade_cart JSON decode HATASI: ' . json_last_error_msg());
+    } else {
+        error_log('odeme.php: asikzade_cart JSON decode OK. Data: ' . print_r($cart_cookie_data_debug, true));
+    }
+} else {
+    error_log('odeme.php: asikzade_cart cookie YOK.');
+}
+
+if (isset($products) && !empty($products)) {
+    error_log('odeme.php: $products dizisi DOLU. Ilk birkac urun: ' . print_r(array_slice($products, 0, 2), true));
+} else {
+    error_log('odeme.php: $products dizisi BOS veya TANIMLI DEGIL.');
+}
+// --- HATA AYIKLAMA SONU ---
 require_once 'config.php'; // Defines paths, Supabase keys etc.
 // products_data.php dosyasını dahil et
 if (file_exists('products_data.php')) {
