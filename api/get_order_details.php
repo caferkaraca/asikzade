@@ -4,26 +4,31 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Admin config dosyasını dahil et (bu dosya config.php'yi de dahil etmeli)
-// __DIR__ kullanmak dosya yollarını daha güvenilir yapar.
-// Bu dosyanın (get_order_details.php) bulunduğu dizindeki admin_config.php'yi arar.
-// Eğer api/ dizinindeyse ve admin_config.php bir üst dizindeyse, __DIR__ . '/../admin_config.php' gibi olmalı.
-// Şimdilik aynı dizinde olduğunu varsayıyorum (örn: /api/admin_config.php ve /api/get_order_details.php)
-// Eğer admin_config.php ana dizindeyse: require_once __DIR__ . '/../admin_config.php';
-require_once 'admin_config.php'; // VEYA __DIR__ . '/admin_config.php';
+require_once 'admin_config.php'; // Contains supabase_api_request and new admin_check_login
 
-// session_start() admin_config.php (veya onun çağırdığı config.php) içinde zaten yapılmalı.
+// --- USER SESSION COOKIE HANDLING ---
+$user_cookie_name = 'asikzade_user_session';
+$user_logged_in = false;
+$user_data_from_cookie = null; 
+
+if (isset($_COOKIE[$user_cookie_name])) {
+    $user_data_json = $_COOKIE[$user_cookie_name];
+    $user_data_from_cookie = json_decode($user_data_json, true);
+    if ($user_data_from_cookie && isset($user_data_from_cookie['user_id'])) {
+        $user_logged_in = true;
+    } else {
+        $user_data_from_cookie = null; 
+    }
+}
+// --- END USER SESSION COOKIE HANDLING ---
 
 $response_data = ['error' => null, 'order_info' => null, 'items' => []];
 
-// Admin yetki kontrolü (isteğe bağlı, eğer bu script sadece admin tarafından çağrılıyorsa)
-// Eğer bu dosya hem normal kullanıcı (dashboard'dan) hem de admin paneli için kullanılacaksa,
-// $is_admin_view kontrolü mantıklı. Sadece admin içinse admin_check_login() çağrılabilir.
 $is_admin_view = isset($_GET['admin_view']) && $_GET['admin_view'] === 'true';
 
 if ($is_admin_view) {
-    admin_check_login(); // Eğer admin görünümü ise, admin girişi yapılmış olmalı.
-} elseif (!isset($_SESSION['user_id'])) { // Normal kullanıcı için (dashboard'dan)
+    admin_check_login(); 
+} elseif (!$user_logged_in) { // Check using the cookie data
     header('Content-Type: application/json; charset=utf-8');
     $response_data['error'] = 'Yetkisiz erişim. Lütfen giriş yapın.';
     echo json_encode($response_data);
@@ -39,9 +44,9 @@ if (empty($order_id)) {
     exit;
 }
 
-$user_id_filter_segment = ''; // Query string için segment
-if (!$is_admin_view && isset($_SESSION['user_id'])) {
-    $user_id_for_query = $_SESSION['user_id'];
+$user_id_filter_segment = ''; 
+if (!$is_admin_view && $user_logged_in && isset($user_data_from_cookie['user_id'])) { // Check using cookie data
+    $user_id_for_query = $user_data_from_cookie['user_id']; // Use user_id from cookie
     $user_id_filter_segment = 'kullanici_id=eq.' . rawurlencode($user_id_for_query);
 }
 
@@ -57,23 +62,20 @@ if (!empty($user_id_filter_segment)) {
 }
 $order_path .= '&select=' . rawurlencode($select_fields_order);
 
-// Fonksiyonu doğru isimle ve parametrelerle çağır:
-// supabase_api_request($method, $path, $data, $custom_headers, $use_service_key)
 $orderInfoResult = supabase_api_request(
     'GET',
     $order_path,
-    [],   // GET için data payload'ı boş
-    [],   // Özel header yok
-    $is_admin_view // Eğer admin görünümü ise service key kullan, değilse anon key (fonksiyon içindeki mantığa göre)
+    [],
+    [],
+    $is_admin_view 
 );
-
 
 if ($orderInfoResult === null || (!empty($orderInfoResult['error']) || empty($orderInfoResult['data']))) {
     header('Content-Type: application/json; charset=utf-8');
     $api_error_message = 'Bilinmeyen bir hata oluştu.';
     if (isset($orderInfoResult['error']['message'])) {
         $api_error_message = $orderInfoResult['error']['message'];
-    } elseif (isset($orderInfoResult['data']['message'])) { // Supabase bazen datada message dönebilir
+    } elseif (isset($orderInfoResult['data']['message'])) {
         $api_error_message = $orderInfoResult['data']['message'];
     }
     $response_data['error'] = 'Sipariş bulunamadı veya erişim yetkiniz yok. Detay: ' . $api_error_message;
@@ -82,8 +84,7 @@ if ($orderInfoResult === null || (!empty($orderInfoResult['error']) || empty($or
     echo json_encode($response_data);
     exit;
 }
-$response_data['order_info'] = $orderInfoResult['data'][0]; // Genellikle data bir array içinde tek eleman olur
-
+$response_data['order_info'] = $orderInfoResult['data'][0];
 
 // 2. Sipariş Ürünlerini Çek
 $items_path = '/rest/v1/siparis_urunleri?siparis_id=eq.' . rawurlencode($order_id) . '&select=' . rawurlencode('urun_adi,miktar,birim_fiyat,ara_toplam');
@@ -91,9 +92,9 @@ $items_path = '/rest/v1/siparis_urunleri?siparis_id=eq.' . rawurlencode($order_i
 $orderItemsResult = supabase_api_request(
     'GET',
     $items_path,
-    [],   // GET için data payload'ı boş
-    [],   // Özel header yok
-    $is_admin_view // Sipariş ürünlerini çekerken de yetkiye göre key kullan
+    [],
+    [],
+    $is_admin_view
 );
 
 if ($orderItemsResult === null) {
@@ -105,8 +106,6 @@ if ($orderItemsResult === null) {
     $response_data['items'] = $orderItemsResult['data'];
 }
 
-
-// Başarılı yanıt için header'ı burada ayarla
 header('Content-Type: application/json; charset=utf-8');
 echo json_encode($response_data);
 exit;
