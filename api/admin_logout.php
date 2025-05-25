@@ -1,22 +1,23 @@
 <?php
-require_once 'admin_config.php'; // session_start() burada olmalı
+// admin_logout.php
+$cookie_name = 'asikzade_admin_session';
+$cookie_path = "/admin/"; // admin_login_process.php'de set ederken kullandığınız path ile aynı olmalı
 
-// Tüm session değişkenlerini temizle
-$_SESSION = array();
+// Cookie'yi geçmiş bir zamana ayarlayarak sil
+setcookie($cookie_name, '', time() - 3600, $cookie_path, "", isset($_SERVER["HTTPS"]), true);
+// Veya daha modern setcookie array syntax'ı ile:
+/*
+setcookie($cookie_name, '', [
+    'expires' => time() - 3600,
+    'path' => $cookie_path,
+    'domain' => '', // admin_login_process.php'deki ile aynı
+    'secure' => isset($_SERVER["HTTPS"]),
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+*/
 
-// Session cookie'sini sil (isteğe bağlı ama önerilir)
-if (ini_get("session.use_cookies")) {
-    $params = session_get_cookie_params();
-    setcookie(session_name(), '', time() - 42000,
-        $params["path"], $params["domain"],
-        $params["secure"], $params["httponly"]
-    );
-}
-
-// Session'ı yok et
-session_destroy();
-
-// Admin giriş sayfasına yönlendir
-header('Location: admin_login.php');
+// Login sayfasına yönlendir
+header('Location: admin_login.php?logout=success'); // İsteğe bağlı: çıkış yapıldığına dair mesaj
 exit;
 ?>

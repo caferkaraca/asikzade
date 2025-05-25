@@ -1,8 +1,50 @@
 <?php
-require_once 'admin_config.php'; // session_start(), admin_check_login(), supabase_api_request()
+require_once 'admin_config.php'; // supabase_api_request() ve GÜNCELLENMİŞ admin_check_login() burada olmalı
+
+// 1. YENİ admin_check_login() FONKSİYONU COOKIE'Yİ KONTROL ETMELİ
+// admin_config.php içindeki admin_check_login() fonksiyonunu şu şekilde güncelleyin:
+/*
+function admin_check_login($redirect_if_not_logged_in = true) {
+    $cookie_name = 'asikzade_admin_session'; // admin_login_process.php'de kullanılan cookie adı
+    if (isset($_COOKIE[$cookie_name])) {
+        // İdealde, cookie değeri bir token ise, bu token'ı veritabanında kontrol et.
+        // Şimdilik sadece varlığını kontrol ediyoruz veya içindeki basit bilgileri okuyoruz.
+        $admin_data_json = $_COOKIE[$cookie_name];
+        $admin_data = json_decode($admin_data_json, true);
+
+        if ($admin_data && isset($admin_data['admin_id'])) { // Basit bir kontrol
+            // İsteğe bağlı: Cookie'deki bilgileri global bir değişkene veya bir sınıfa ata
+            // global $current_admin_user;
+            // $current_admin_user = $admin_data;
+            return true; // Admin giriş yapmış
+        }
+    }
+
+    if ($redirect_if_not_logged_in) {
+        // Giriş yapılmamışsa, login sayfasına yönlendir (hata mesajı olmadan)
+        header('Location: admin_login.php');
+        exit;
+    }
+    return false; // Admin giriş yapmamış
+}
+*/
 admin_check_login(); // Yetkisiz erişimi engelle
 
-$admin_email_session = $_SESSION['admin_email'] ?? 'Admin';
+// 2. Admin bilgilerini cookie'den al
+$admin_email_display = 'Admin'; // Varsayılan
+$admin_id_from_cookie = null;
+
+if (isset($_COOKIE['asikzade_admin_session'])) {
+    $admin_data_json = $_COOKIE['asikzade_admin_session'];
+    $admin_data = json_decode($admin_data_json, true);
+    if ($admin_data && isset($admin_data['admin_email'])) {
+        $admin_email_display = $admin_data['admin_email'];
+    }
+    if ($admin_data && isset($admin_data['admin_id'])) {
+        $admin_id_from_cookie = $admin_data['admin_id']; // Daha sonra gerekirse kullanılabilir
+    }
+}
+
 
 if (file_exists('products_data.php')) {
     include 'products_data.php';
@@ -11,26 +53,42 @@ if (file_exists('products_data.php')) {
     error_log("admin_dashboard.php: products_data.php dosyası bulunamadı.");
 }
 
+// 3. URL'den başarı/hata mesajlarını al
+$success_message = null;
+$error_message = null;
+if (isset($_GET['success_msg'])) {
+    $success_message = htmlspecialchars(urldecode($_GET['success_msg']));
+}
+if (isset($_GET['error_msg'])) {
+    $error_message = htmlspecialchars(urldecode($_GET['error_msg']));
+}
+// Mevcut GET parametrelerini mesajlar olmadan sakla (yönlendirmeler için)
+$current_get_params = $_GET;
+unset($current_get_params['success_msg'], $current_get_params['error_msg']);
+
+
 // --- SİPARİŞ DURUMU GÜNCELLEME İŞLEMİ ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'guncelle_siparis_durumu') {
-    // ... (Mevcut sipariş durumu güncelleme kodunuz buraya gelecek - değişiklik yok) ...
     $siparis_id_guncelle = $_POST['siparis_id_guncelle'] ?? null;
     $yeni_durum = $_POST['yeni_siparis_durumu'] ?? null;
     $gecerli_durumlar = ['beklemede', 'hazırlanıyor', 'gönderildi', 'teslim edildi', 'iptal edildi'];
+    
+    $redirect_params_after_update = $current_get_params; // Sayfalama ve filtreleri koru
 
     if ($siparis_id_guncelle && $yeni_durum && in_array($yeni_durum, $gecerli_durumlar)) {
         $updateData = ['siparis_durumu' => $yeni_durum];
+        // service_role key ile güncelleme yapılıyorsa 4. parametre true olmalı
         $updateResult = supabase_api_request('PATCH', '/rest/v1/siparisler?id=eq.' . $siparis_id_guncelle, $updateData, [], true);
         if (!$updateResult['error'] && ($updateResult['http_code'] === 200 || $updateResult['http_code'] === 204)) {
-            $_SESSION['admin_success_message'] = "Sipariş #" . substr($siparis_id_guncelle,0,8) . " durumu başarıyla '" . htmlspecialchars($yeni_durum) . "' olarak güncellendi.";
+            $redirect_params_after_update['success_msg'] = urlencode("Sipariş #" . substr($siparis_id_guncelle,0,8) . " durumu başarıyla '" . htmlspecialchars($yeni_durum) . "' olarak güncellendi.");
         } else {
             $api_error = $updateResult['error']['message'] ?? ($updateResult['data']['message'] ?? 'Bilinmeyen API hatası');
-            $_SESSION['admin_error_message'] = "Sipariş durumu güncellenirken hata: " . htmlspecialchars($api_error);
+            $redirect_params_after_update['error_msg'] = urlencode("Sipariş durumu güncellenirken hata: " . htmlspecialchars($api_error));
         }
     } else {
-        $_SESSION['admin_error_message'] = "Geçersiz sipariş ID veya durum bilgisi.";
+        $redirect_params_after_update['error_msg'] = urlencode("Geçersiz sipariş ID veya durum bilgisi.");
     }
-    header('Location: admin_dashboard.php?' . http_build_query($_GET));
+    header('Location: admin_dashboard.php?' . http_build_query($redirect_params_after_update));
     exit;
 }
 
@@ -38,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 $search_query = trim($_GET['q'] ?? '');
 $filter_status = $_GET['status'] ?? '';
 $current_page = max(1, intval($_GET['page'] ?? 1));
-$items_per_page = 10; // Sayfa başına gösterilecek sipariş sayısı (azalttım)
+$items_per_page = 10;
 $offset = ($current_page - 1) * $items_per_page;
 
 // --- SİPARİŞLERİ ÇEKME ---
@@ -47,20 +105,19 @@ $select_fields = 'id,kullanici_id,siparis_tarihi,toplam_tutar,siparis_durumu,tes
 $api_params_array = [];
 $count_api_params_array = [];
 
-// ID ile arama için: Supabase'de ID'ler genellikle UUID formatındadır.
-// Eğer $search_query bir UUID ise direkt arama yap.
-// Aksi takdirde, arama şu an için sadece ID'ye göre çalışıyor. Diğer alanlar için or() kullanılabilir.
+$search_error_occurred = false; // Arama hatası için flag
+
 if (!empty($search_query)) {
-    // Basit bir UUID formatı kontrolü
     if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $search_query)) {
         $api_params_array[] = 'id=eq.' . urlencode($search_query);
         $count_api_params_array[] = 'id=eq.' . urlencode($search_query);
     } else {
-        // Eğer ID değilse ve diğer alanlarda (örn: kullanıcı adı, eposta) arama yapmak isterseniz:
-        // Bu kısım Supabase'in "or" ve "ilike" (case-insensitive like) operatörlerini kullanmayı gerektirir.
-        // Örnek: $api_params_array[] = 'or=(kullanicilar.email.ilike.*'.urlencode($search_query).'*,kullanicilar.ad.ilike.*'.urlencode($search_query).'*)';
-        // Şimdilik sadece ID ile arama olarak bırakıyorum, çünkü diğer alanlar için sorgu karmaşıklaşır.
-         $_SESSION['admin_error_message'] = "Arama şu anda sadece tam Sipariş ID (UUID formatında) ile çalışmaktadır.";
+        // Sadece ID ile arama hata mesajını burada set etmiyoruz, doğrudan $error_message'a atayacağız.
+        // Ancak bu mesajın diğer error_message'ları ezmemesine dikkat etmeliyiz.
+        if (!$error_message) { // Eğer başka bir hata mesajı yoksa bunu göster
+            $error_message = "Arama şu anda sadece tam Sipariş ID (UUID formatında) ile çalışmaktadır.";
+        }
+        $search_error_occurred = true; // Arama yapılamadığı için flag set et
     }
 }
 
@@ -69,54 +126,57 @@ if (!empty($filter_status)) {
     $count_api_params_array[] = 'siparis_durumu=eq.' . urlencode($filter_status);
 }
 
-// Toplam sipariş sayısını al
 $total_orders = 0;
-$count_query_string = '';
-if (!empty($count_api_params_array)) {
-    $count_query_string = '&' . implode('&', $count_api_params_array);
-}
-$countResult = supabase_api_request('GET', $base_api_path . '?select=id' . $count_query_string, [], ['Prefer: count=exact'], true);
-
-if (!$countResult['error'] && isset($countResult['headers']['content-range'])) {
-    $range = explode('/', $countResult['headers']['content-range']);
-    if(isset($range[1])) $total_orders = intval($range[1]);
-} else {
-    // Fallback (daha az verimli ama Content-Range yoksa bir deneme)
-    $tempCountResult = supabase_api_request('GET', $base_api_path . '?select=id' . $count_query_string, [], [], true);
-    if (!$tempCountResult['error'] && isset($tempCountResult['data'])) {
-        $total_orders = count($tempCountResult['data']);
+if (!$search_error_occurred) { // Eğer arama hatası yoksa toplam sayıyı çek
+    $count_query_string = '';
+    if (!empty($count_api_params_array)) {
+        $count_query_string = '&' . implode('&', $count_api_params_array);
     }
-    error_log("Admin Dashboard: Content-Range header alınamadı. Sipariş sayısı fallback ile hesaplandı.");
+    $countResult = supabase_api_request('GET', $base_api_path . '?select=id' . $count_query_string, [], ['Prefer: count=exact'], true);
+
+    if (!$countResult['error'] && isset($countResult['headers']['content-range'])) {
+        $range = explode('/', $countResult['headers']['content-range']);
+        if(isset($range[1])) $total_orders = intval($range[1]);
+    } else {
+        $tempCountResult = supabase_api_request('GET', $base_api_path . '?select=id' . $count_query_string, [], [], true);
+        if (!$tempCountResult['error'] && isset($tempCountResult['data'])) {
+            $total_orders = count($tempCountResult['data']);
+        }
+        if ($countResult['error'] || !isset($countResult['headers']['content-range'])) {
+           // error_log("Admin Dashboard: Content-Range header alınamadı veya API hatası. Sipariş sayısı fallback ile hesaplandı. Error: " . ($countResult['error']['message'] ?? 'Content-Range missing'));
+        }
+    }
 }
+
 
 $total_pages = $items_per_page > 0 ? ceil($total_orders / $items_per_page) : 1;
 if ($current_page > $total_pages && $total_pages > 0) {
     $current_page = $total_pages;
-    $offset = ($current_page - 1) * $items_per_page; // Offset'i yeniden hesapla
+    $offset = ($current_page - 1) * $items_per_page;
 }
 
-
-// Sayfalanmış siparişleri çek
-$api_path_paginated = $base_api_path . '?select=' . $select_fields;
-if (!empty($api_params_array)) {
-    $api_path_paginated .= '&' . implode('&', $api_params_array);
-}
-$api_path_paginated .= '&order=siparis_tarihi.desc&offset=' . $offset . '&limit=' . $items_per_page;
 
 $tum_siparisler = [];
-$siparislerResult = supabase_api_request('GET', $api_path_paginated, [], [], true);
+if (!$search_error_occurred) { // Eğer arama hatası yoksa siparişleri çek
+    $api_path_paginated = $base_api_path . '?select=' . $select_fields;
+    if (!empty($api_params_array)) {
+        $api_path_paginated .= '&' . implode('&', $api_params_array);
+    }
+    $api_path_paginated .= '&order=siparis_tarihi.desc&offset=' . $offset . '&limit=' . $items_per_page;
 
-if (!$siparislerResult['error'] && !empty($siparislerResult['data'])) {
-    $tum_siparisler = $siparislerResult['data'];
-} elseif ($siparislerResult['error'] && !isset($_SESSION['admin_error_message'])) { // Eğer zaten ID arama hatası yoksa
-    $_SESSION['admin_error_message'] = "Siparişler yüklenirken hata: " . ($siparislerResult['error']['message'] ?? 'Bilinmeyen hata');
+    $siparislerResult = supabase_api_request('GET', $api_path_paginated, [], [], true);
+
+    if (!$siparislerResult['error'] && !empty($siparislerResult['data'])) {
+        $tum_siparisler = $siparislerResult['data'];
+    } elseif ($siparislerResult['error'] && !$error_message) { // Eğer başka bir hata mesajı yoksa
+        $error_message = "Siparişler yüklenirken hata: " . ($siparislerResult['error']['message'] ?? 'Bilinmeyen hata');
+    }
 }
 
+
 // --- SİPARİŞ DURUM RAPORU İÇİN VERİ ÇEKME ---
-// Not: Bu kısım tüm siparişleri çeker ve PHP'de gruplar. Büyük veri setlerinde verimsizdir.
-// İdeal olan Supabase'de bir RPC fonksiyonu veya VIEW oluşturmaktır.
 $order_status_report = [];
-$allOrdersForReportResult = supabase_api_request('GET', '/rest/v1/siparisler?select=siparis_durumu', [], [], true);
+$allOrdersForReportResult = supabase_api_request('GET', '/rest/v1/siparisler?select=siparis_durumu', [], [], true); // Tüm siparişleri çekiyoruz
 if (!$allOrdersForReportResult['error'] && !empty($allOrdersForReportResult['data'])) {
     foreach ($allOrdersForReportResult['data'] as $order) {
         $status = $order['siparis_durumu'] ?? 'bilinmiyor';
@@ -126,9 +186,9 @@ if (!$allOrdersForReportResult['error'] && !empty($allOrdersForReportResult['dat
         $order_status_report[$status]++;
     }
 } else {
-    error_log("Admin Dashboard: Sipariş durum raporu için veri çekilemedi.");
+    // error_log("Admin Dashboard: Sipariş durum raporu için veri çekilemedi. Error: " . ($allOrdersForReportResult['error']['message'] ?? 'Unknown'));
 }
-// Durumları istediğimiz sırada göstermek için
+
 $status_order = ['beklemede', 'hazırlanıyor', 'gönderildi', 'teslim edildi', 'iptal edildi', 'bilinmiyor'];
 $ordered_status_report = [];
 foreach($status_order as $status_key) {
@@ -137,11 +197,8 @@ foreach($status_order as $status_key) {
     }
 }
 
-
-$success_message = $_SESSION['admin_success_message'] ?? null;
-unset($_SESSION['admin_success_message']);
-$error_message = $_SESSION['admin_error_message'] ?? null;
-unset($_SESSION['admin_error_message']);
+// $success_message ve $error_message zaten yukarıda URL'den alındı.
+// Session'dan unset etmeye gerek yok.
 
 ?>
 <!DOCTYPE html>
@@ -151,6 +208,7 @@ unset($_SESSION['admin_error_message']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Paneli - Sipariş Yönetimi</title>
     <style>
+        /* STİL KODLARI DEĞİŞMEDEN AYNI KALACAK */
         :root {
             --asikzade-content-bg: #fef6e6;
             --asikzade-green: #8ba86d;
@@ -363,17 +421,16 @@ unset($_SESSION['admin_error_message']);
             .modal-content { padding: 20px 15px;}
             .modal-title {font-size: 1.4rem;}
         }
-
     </style>
 </head>
 <body>
     <header class="header">
-        <a href="index.php" class="logo-container"> <!-- Admin panelinden ana siteye link -->
+        <a href="index.php" class="logo-container">
             <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo">
-            <span class="logo-text">AŞIKZADE</span>
+            <span class="logo-text">AŞIKZADE</span> <!-- Logo text eklendi -->
         </a>
         <nav class="admin-header-nav">
-            <span class="welcome-text">Hoş geldiniz, <?php echo htmlspecialchars($admin_email_session); ?>!</span>
+            <span class="welcome-text">Hoş geldiniz, <?php echo htmlspecialchars($admin_email_display); ?>!</span>
             <a href="admin_logout.php" class="logout-link">Çıkış Yap</a>
         </nav>
     </header>
@@ -382,17 +439,15 @@ unset($_SESSION['admin_error_message']);
         <h1 class="admin-page-title">Admin Paneli - Sipariş Yönetimi</h1>
 
         <?php if ($success_message): ?>
-            <div class="message-box message-success"><?php echo htmlspecialchars($success_message); ?></div>
+            <div class="message-box message-success"><?php echo $success_message; // Zaten htmlspecialchars yapıldı ?></div>
         <?php endif; ?>
         <?php if ($error_message): ?>
-            <div class="message-box message-error"><?php echo htmlspecialchars($error_message); ?></div>
+            <div class="message-box message-error"><?php echo $error_message; // Zaten htmlspecialchars yapıldı ?></div>
         <?php endif; ?>
 
         <!-- Sipariş Durum Raporu -->
         <div class="status-report-cards">
-            <?php
-            $total_all_orders_for_report = array_sum($ordered_status_report);
-            ?>
+            <?php $total_all_orders_for_report = array_sum($ordered_status_report); ?>
             <div class="report-card" style="border-left-color: var(--asikzade-dark-text);">
                 <h4>Toplam Sipariş</h4>
                 <span class="count"><?php echo $total_all_orders_for_report; ?></span>
@@ -465,11 +520,11 @@ unset($_SESSION['admin_error_message']);
                                     $k_ad = $siparis['kullanicilar']['ad'] ?? '';
                                     $k_soyad = $siparis['kullanicilar']['soyad'] ?? '';
                                     if(trim($k_ad . $k_soyad) !== '') {
-                                        $kullanici_adi_soyadi = trim($k_ad . ' ' . $k_soyad);
+                                        $kullanici_adi_soyadi = trim(htmlspecialchars($k_ad) . ' ' . htmlspecialchars($k_soyad));
                                     }
                                     $kullanici_email = $siparis['kullanicilar']['email'] ?? 'E-posta yok';
                                 }
-                                echo htmlspecialchars($kullanici_adi_soyadi);
+                                echo $kullanici_adi_soyadi; // Zaten htmlspecialchars yapıldı
                                 ?>
                                 <br>
                                 <small><a href="mailto:<?php echo htmlspecialchars($kullanici_email); ?>" class="user-email-link"><?php echo htmlspecialchars($kullanici_email); ?></a></small>
@@ -478,7 +533,7 @@ unset($_SESSION['admin_error_message']);
                             <td><?php echo htmlspecialchars(number_format($siparis['toplam_tutar'], 2, ',', '.')); ?> TL</td>
                             <td><span class="status-<?php echo str_replace(' ', '-', htmlspecialchars(strtolower($siparis['siparis_durumu']))); ?>"><?php echo htmlspecialchars(ucfirst($siparis['siparis_durumu'])); ?></span></td>
                             <td>
-                                <form action="admin_dashboard.php?<?php echo http_build_query(array_merge($_GET, ['page' => $current_page])); ?>" method="POST">
+                                <form action="admin_dashboard.php?<?php echo http_build_query(array_merge($current_get_params, ['page' => $current_page])); ?>" method="POST">
                                     <input type="hidden" name="action" value="guncelle_siparis_durumu">
                                     <input type="hidden" name="siparis_id_guncelle" value="<?php echo htmlspecialchars($siparis['id']); ?>">
                                     <select name="yeni_siparis_durumu" class="status-select">
@@ -503,13 +558,16 @@ unset($_SESSION['admin_error_message']);
                 <?php if ($total_pages > 1): ?>
                 <div class="pagination">
                     <?php
-                    $pagination_params = $_GET;
-                    unset($pagination_params['page']);
-                    $base_pagination_url = 'admin_dashboard.php?' . http_build_query($pagination_params);
-                    $separator = empty($pagination_params) ? '' : '&';
+                    // $pagination_params zaten $current_get_params olarak yukarıda tanımlandı (mesajlar hariç)
+                    $base_pagination_url = 'admin_dashboard.php?' . http_build_query($current_get_params);
+                    $separator = empty($current_get_params) ? '' : '&';
+                    if (empty($current_get_params) && $total_pages > 0 && $current_page == 1) $separator = "?"; // Hiç GET yoksa ve sayfa 1 ise ? ile başla
+                    if (!empty($current_get_params)) $separator = '&'; else $separator = '?';
+
+
                     ?>
                     <?php if ($current_page > 1): ?>
-                        <a href="<?php echo $base_pagination_url . $separator . 'page=' . ($current_page - 1); ?>">« Önceki</a>
+                        <a href="<?php echo 'admin_dashboard.php?' . http_build_query(array_merge($current_get_params, ['page' => ($current_page - 1)])); ?>">« Önceki</a>
                     <?php else: ?>
                         <span class="disabled">« Önceki</span>
                     <?php endif; ?>
@@ -518,12 +576,12 @@ unset($_SESSION['admin_error_message']);
                         <?php if ($i == $current_page): ?>
                             <span class="current"><?php echo $i; ?></span>
                         <?php else: ?>
-                            <a href="<?php echo $base_pagination_url . $separator . 'page=' . $i; ?>"><?php echo $i; ?></a>
+                            <a href="<?php echo 'admin_dashboard.php?' . http_build_query(array_merge($current_get_params, ['page' => $i])); ?>"><?php echo $i; ?></a>
                         <?php endif; ?>
                     <?php endfor; ?>
 
                     <?php if ($current_page < $total_pages): ?>
-                        <a href="<?php echo $base_pagination_url . $separator . 'page=' . ($current_page + 1); ?>">Sonraki »</a>
+                        <a href="<?php echo 'admin_dashboard.php?' . http_build_query(array_merge($current_get_params, ['page' => ($current_page + 1)])); ?>">Sonraki »</a>
                     <?php else: ?>
                         <span class="disabled">Sonraki »</span>
                     <?php endif; ?>
@@ -531,7 +589,11 @@ unset($_SESSION['admin_error_message']);
                 <?php endif; ?>
 
             <?php else: ?>
-                <p>Filtrelerinize uygun sipariş bulunamadı veya hiç sipariş yok.</p>
+                 <?php if ($search_error_occurred && !empty($search_query) && !$error_message) : ?>
+                    <p>"'<?php echo htmlspecialchars($search_query); ?>'" için sonuç bulunamadı. Lütfen geçerli bir Sipariş ID (UUID formatında) girin.</p>
+                <?php elseif (!$error_message) : // Başka bir hata yoksa genel mesajı göster ?>
+                    <p>Filtrelerinize uygun sipariş bulunamadı veya hiç sipariş yok.</p>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
@@ -550,22 +612,21 @@ unset($_SESSION['admin_error_message']);
     </div>
 
 <script>
+// JAVASCRIPT KODLARI DEĞİŞMEDEN AYNI KALACAK
 document.addEventListener('DOMContentLoaded', function () {
     const inspectButtons = document.querySelectorAll('.admin-order-inspect-btn');
     const modal = document.getElementById('adminOrderDetailModal');
     const modalContentDiv = document.getElementById('adminModalOrderDetailContent');
     const closeButtons = document.querySelectorAll('.admin-modal-close');
 
-    // Hamburger menü (mobil için sidebar'ı aç/kapa) kaldırıldı, çünkü sidebar yok.
-
     function openModal() {
         if(modal) modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden'; // Arka plan kaymasını engelle
+        document.body.style.overflow = 'hidden';
     }
     function closeModal() {
         if(modal) modal.style.display = 'none';
         if(modalContentDiv) modalContentDiv.innerHTML = '<p>Yükleniyor...</p>';
-        document.body.style.overflow = ''; // Kaymayı geri aç
+        document.body.style.overflow = '';
     }
 
     closeButtons.forEach(btn => btn.addEventListener('click', closeModal));
@@ -632,9 +693,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                             data.items.forEach(item => {
                                 let imageUrl = 'https://via.placeholder.com/50/e9ecef/6c757d?text=?'; // Varsayılan placeholder
-                                if (productsData && item.urun_id && productsData[item.urun_id]) { // ürün ID'si ile eşleştir
+                                if (productsData && item.urun_id && productsData[item.urun_id]) { 
                                     imageUrl = productsData[item.urun_id].image || productsData[item.urun_id].hero_image || imageUrl;
-                                } else if (productsData && item.urun_adi) { // Eğer ID yoksa isimle dene (daha az güvenilir)
+                                } else if (productsData && item.urun_adi) { 
                                      for (const key in productsData) {
                                         if (productsData.hasOwnProperty(key) && productsData[key].name === item.urun_adi) {
                                             imageUrl = productsData[key].image || productsData[key].hero_image || imageUrl;

@@ -1,14 +1,49 @@
 <?php
-// admin_config.php session_start() yaptığı için burada tekrar çağırmaya gerek yok,
-// ama config dosyasının varlığından emin olmak için require_once iyi bir pratik.
-require_once 'admin_config.php';
+// require_once 'admin_config.php'; // Eğer admin_config.php session_start() yapıyorsa ve artık session kullanılmayacaksa bu satır düzenlenmeli veya kaldırılabilir.
+                                   // Sadece başka ayarlar için gerekiyorsa session_start() olmadan dahil edilebilir.
 
-$error_message = $_SESSION['admin_error_message'] ?? null;
-unset($_SESSION['admin_error_message']); // Mesajı gösterdikten sonra temizle
+$error_message_display = null;
+$form_email_value = '';
 
-// Eğer kullanıcı zaten admin olarak giriş yapmışsa ve admin yetkisine sahipse, dashboard'a yönlendir
-if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true &&
-    isset($_SESSION['is_admin_user']) && $_SESSION['is_admin_user'] === true) { // Bu kontrol önemli
+// URL'den hata mesajını al
+if (isset($_GET['error'])) {
+    // Burada $_GET['error'] değerine göre hata mesajlarını belirleyebilirsiniz.
+    // Örneğin:
+    switch ($_GET['error']) {
+        case 'bos_alanlar':
+            $error_message_display = "E-posta ve şifre alanları zorunludur.";
+            break;
+        case 'gecersiz_email':
+            $error_message_display = "Geçersiz e-posta formatı.";
+            break;
+        case 'kullanici_yok':
+            $error_message_display = "Bu e-posta adresi ile kayıtlı bir admin bulunamadı.";
+            break;
+        case 'sifre_yanlis':
+            $error_message_display = "E-posta veya şifre hatalı.";
+            break;
+        case 'yetki_yok':
+            $error_message_display = "Bu hesaba admin yetkisi tanımlanmamış.";
+            break;
+        // admin_login_process.php'den gelebilecek diğer hata kodları...
+        default:
+            $error_message_display = "Bilinmeyen bir hata oluştu veya geçersiz hata kodu.";
+            break;
+    }
+}
+
+// URL'den e-posta değerini al (formu tekrar doldurmak için)
+if (isset($_GET['email'])) {
+    $form_email_value = htmlspecialchars($_GET['email']);
+}
+
+// Eğer kullanıcı zaten admin olarak giriş yapmışsa (cookie ile kontrol)
+// Bu cookie'nin adı ve değeri admin_login_process.php'de nasıl set edildiğine bağlı olacaktır.
+// Örnek bir cookie adı: 'asikzade_admin_session'
+if (isset($_COOKIE['asikzade_admin_session'])) {
+    // İdealde, cookie'nin değeri de doğrulanmalı, sadece varlığı yeterli olmayabilir.
+    // Bu, admin_login_process.php'de nasıl bir token oluşturulduğuna bağlı.
+    // Şimdilik basitçe varlığını kontrol ediyoruz, bu "admin yetkisine sahip" anlamına gelecek şekilde kurgulanmalı.
     header('Location: admin_dashboard.php');
     exit;
 }
@@ -117,13 +152,13 @@ if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true
     <div class="login-container">
         <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo" class="logo">
         <h1>Admin Paneli Girişi</h1>
-        <?php if ($error_message): ?>
-            <p class="error-message"><?php echo htmlspecialchars($error_message); ?></p>
+        <?php if ($error_message_display): ?>
+            <p class="error-message"><?php echo htmlspecialchars($error_message_display); ?></p>
         <?php endif; ?>
         <form action="admin_login_process.php" method="POST">
             <div class="form-group">
                 <label for="admin_email">E-posta Adresiniz</label>
-                <input type="email" id="admin_email" name="admin_email" required value="<?php echo htmlspecialchars($_SESSION['form_data_admin_login']['email'] ?? ''); ?>">
+                <input type="email" id="admin_email" name="admin_email" required value="<?php echo $form_email_value; ?>">
             </div>
             <div class="form-group">
                 <label for="admin_password">Şifreniz</label>
@@ -131,7 +166,7 @@ if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true
             </div>
             <button type="submit" class="login-btn">Giriş Yap</button>
         </form>
-        <?php unset($_SESSION['form_data_admin_login']); ?>
+        <?php // unset($_SESSION['form_data_admin_login']); // Session artık kullanılmadığı için bu satır gereksiz. ?>
     </div>
 </body>
 </html>
