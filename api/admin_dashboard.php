@@ -190,7 +190,7 @@ foreach($status_order as $status_key) {
     <header class="header">
         <a href="index.php" class="logo-container">
             <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo">
-            <span class="logo-text">AŞIKZADE</span>
+            <span class="logo-text"></span>
         </a>
         <nav class="admin-header-nav">
             <span class="welcome-text">Hoş geldiniz, <?php echo htmlspecialchars($admin_email_display); ?>!</span>

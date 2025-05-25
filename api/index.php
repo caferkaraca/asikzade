@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Açılış - Boya Efekti</title>
+    <title>AŞIK ZADE</title>
     <style>
         body, html {
             margin: 0;
@@ -53,7 +53,7 @@
     <div id="video-container">
         <video id="introVideo" autoplay muted playsinline>
             <source src="https://i.imgur.com/KT0EDTZ.mp4" type="video/mp4">
-            Tarayıcınız video etiketini desteklemiyor.
+            Tarayıcınız bunu desteklemiyor.
         </video>
     </div>
 

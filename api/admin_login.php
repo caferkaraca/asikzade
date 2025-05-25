@@ -158,11 +158,11 @@ if (isset($_COOKIE['asikzade_admin_session'])) {
         <form action="admin_login_process.php" method="POST">
             <div class="form-group">
                 <label for="admin_email">E-posta Adresiniz</label>
-                <input type="email" id="admin_email" name="admin_email" required value="<?php echo $form_email_value; ?>">
+                <input type="email" id="admin_email" name="admin_email" required value="info@asikzade.com">
             </div>
             <div class="form-group">
                 <label for="admin_password">Şifreniz</label>
-                <input type="password" id="admin_password" name="admin_password" required>
+                <input type="password" id="admin_password" name="admin_password" Value="123456" required>
             </div>
             <button type="submit" class="login-btn">Giriş Yap</button>
         </form>

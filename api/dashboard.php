@@ -363,7 +363,7 @@ if ($user_id_for_query) {
     <header class="header" id="mainHeader">
         <a href="/index.php" class="logo-container"> <!-- YOLU / İLE BAŞLATIN -->
             <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo">
-            <span class="logo-text">AŞIKZADE</span> <!-- Metni ekledim -->
+            <span class="logo-text"></span> <!-- Metni ekledim -->
         </a>
         <nav class="main-nav">
             <div class="user-actions-group">
