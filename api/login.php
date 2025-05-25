@@ -208,7 +208,7 @@ if (isset($_GET['registration']) && $_GET['registration'] === 'success') {
                 <button type="submit" class="login-btn">Giriş Yap</button>
             </form>
             <p class="signup-link">
-                Hesabınız yok mu? <a href="register.php">Hemen Kaydolun</a>
+                Hesabınız yok mu? <a href="register.php">Hemen Kaydolun</a> <br> <br>
                 Admin Girişi  <a href="admin_login.php">Admin olarak giriş yap</a>
             </p>
             <?php 
