@@ -5,10 +5,10 @@ require_once 'config.php'; // session_start() burada olmalı veya config.php iç
 // Kullanıcı zaten giriş yapmış mı diye kontrol et
 // $_SESSION['user_id'] veya $_SESSION['logged_in'] gibi bir session değişkeni
 // login_process.php dosyanızda başarılı giriş sonrası oluşturulmalıdır.
-if (isset($_SESSION['user_id'])) { // VEYA if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true)
-    header('Location: dashboard.php'); // Giriş yapmış kullanıcıyı dashboard'a yönlendir
-    exit; // Yönlendirmeden sonra scriptin çalışmasını durdur
-}
+  if (isset($_SESSION['user_id'])) {
+      header('Location: /dashboard.php'); // Gerekirse /api/dashboard.php
+      exit;
+  }
 // === YENİ EKLENEN KISIM SONU ===
 
 // Buradan sonrası sizin mevcut login.php kodunuz...

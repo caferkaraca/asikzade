@@ -15,12 +15,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if (empty($email) || empty($sifre_girilen)) {
         $_SESSION['error_message'] = "E-posta ve şifre alanları zorunludur.";
-        header('Location: login.php'); // login.php'nin doğru yolunu belirtin
+        header('Location: /login.php'); // login.php'nin doğru yolunu belirtin
         exit;
     }
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $_SESSION['error_message'] = "Geçersiz e-posta formatı.";
-        header('Location: login.php');
+        header('Location: /login.php');
         exit;
     }
 
@@ -37,13 +37,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (!empty($userQueryResult['error'])) { // Hata kontrolünü önce yap
         $_SESSION['error_message'] = "Kullanıcı bilgileri alınırken bir hata oluştu: " . ($userQueryResult['error']['message'] ?? 'Bilinmeyen API hatası');
         error_log("Supabase DB Get User Error: " . ($userQueryResult['error']['message'] ?? 'Bilinmeyen API hatası') . " For email: " . $email . " | Response: " . json_encode($userQueryResult));
-        header('Location: login.php');
+        header('Location: /login.php');
         exit;
     }
 
     if (empty($userQueryResult['data'])) {
         $_SESSION['error_message'] = "Bu e-posta adresi ile kayıtlı bir kullanıcı bulunamadı.";
-        header('Location: login.php');
+        header('Location: /login.php');
         exit;
     }
 
@@ -53,7 +53,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($sifre_hash_from_db === null) {
         $_SESSION['error_message'] = "Kullanıcı hesabı düzgün yapılandırılmamış (şifre bilgisi eksik).";
         error_log("Missing password hash for user ID: " . ($userDataFromDB['id'] ?? 'N/A') . " for email: " . $email);
-        header('Location: login.php');
+        header('Location: /login.php');
         exit;
     }
 
@@ -66,19 +66,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // Dashboard'a yönlendir. Dashboard.php'nin yolunu kontrol edin.
         // Eğer login_process.php ve dashboard.php aynı dizindeyse (örn: api/):
-        header('Location: dashboard.php');
+        header('Location: /dashboard.php');
         // Eğer dashboard.php kök dizindeyse:
         // header('Location: ../dashboard.php');
         exit;
     } else {
         $_SESSION['error_message'] = "E-posta veya şifre hatalı.";
-        header('Location: login.php');
+        header('Location: /login.php');
         exit;
     }
 
 } else {
     // POST dışındaki istekleri login sayfasına yönlendir
-    header('Location: login.php');
+    header('Location: /login.php');
     exit;
 }
 ?>
