@@ -1,5 +1,5 @@
 <?php
-session_start();
+
 // Supabase Proje Bilgileri
 if (!defined('SUPABASE_URL')) {
     define('SUPABASE_URL', 'https://winiynluwwmthurgiyar.supabase.co');

@@ -4,40 +4,53 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// config.php, admin_config.php'yi (ve dolayısıyla supabase_api_request fonksiyonunu) içermeli.
-// Bu satırın dashboard.php'nin bulunduğu konuma göre config.php'nin doğru yolunu gösterdiğinden emin olun.
-// Örneğin, eğer dashboard.php api/ dizininde ve config.php kök dizindeyse: require_once __DIR__ . '/../config.php';
-// Eğer ikisi de aynı dizindeyse (örn: api/):
-require_once 'config.php'; // KENDİ YOLUNUZA GÖRE AYARLAYIN
+ob_start(); // Çıktı tamponlamasını başlat
 
-if (!isset($_SESSION['user_id'])) {
-    $_SESSION['error_message'] = "Kontrol paneline erişmek için lütfen giriş yapın.";
-    header('Location: login.php'); // KENDİ YOLUNUZA GÖRE AYARLAYIN
+// config.php'yi dahil et (Supabase fonksiyonları için)
+// YOLUNU KONTROL EDİN! Eğer dashboard.php api/ içindeyse ve config.php kökteyse:
+// require_once __DIR__ . '/../config.php';
+require_once 'config.php'; // Eğer aynı dizindeyse
+
+// --- COOKIE TABANLI OTURUM KONTROLÜ ---
+$user_data_from_cookie = null;
+if (isset($_COOKIE['asikzade_user_session'])) {
+    $user_data_from_cookie = json_decode($_COOKIE['asikzade_user_session'], true);
+    if (!$user_data_from_cookie || !isset($user_data_from_cookie['user_id'])) {
+        setcookie("asikzade_user_session", "", time() - 3600, "/");
+        header('Location: /login.php?error=invalid_cookie'); // YOLU / İLE BAŞLATIN
+        exit;
+    }
+} else {
+    header('Location: /login.php'); // YOLU / İLE BAŞLATIN
     exit;
 }
+// --- OTURUM KONTROLÜ SONU ---
 
-$success_message_dashboard = $_SESSION['success_message_dashboard'] ?? null;
-unset($_SESSION['success_message_dashboard']);
-$error_message_dashboard = $_SESSION['error_message_dashboard'] ?? null;
-unset($_SESSION['error_message_dashboard']);
+$success_message_dashboard = isset($_GET['success_msg']) ? urldecode($_GET['success_msg']) : null;
+$error_message_dashboard = isset($_GET['error_msg']) ? urldecode($_GET['error_msg']) : null;
 
 // products_data.php'nin yolunu kontrol edin
-if (file_exists(__DIR__ . '/products_data.php')) { // dashboard.php ile aynı dizinde olduğunu varsayar
-    include __DIR__ . '/products_data.php';
+$products_data_path = __DIR__ . '/products_data.php'; // dashboard.php ile aynı dizinde olduğunu varsayar
+if (file_exists($products_data_path)) {
+    include $products_data_path;
 } else {
-    $products = [];
-    error_log("dashboard.php: products_data.php bulunamadı. Yol: " . __DIR__ . '/products_data.php');
+    $products = []; // products_data.php bulunamazsa $products'ı boş bir dizi olarak tanımla
+    error_log("dashboard.php: products_data.php bulunamadı. Beklenen yol: " . $products_data_path);
 }
 
+
 $cart_item_count = 0;
+// get_cart_count fonksiyonu varsa ve products_data.php'den geliyorsa sorun yok.
+// Eğer config.php veya başka bir yerden geliyorsa, onun da dahil edildiğinden emin olun.
 if (function_exists('get_cart_count')) {
     $cart_item_count = get_cart_count();
 }
 
-$user_ad = $_SESSION['user_ad'] ?? '';
-$user_soyad = $_SESSION['user_soyad'] ?? '';
-$user_email = $_SESSION['user_email'] ?? 'Misafir Kullanıcı';
-$user_id_for_query = $_SESSION['user_id'] ?? null; // null kontrolü eklendi
+// Kullanıcı bilgilerini cookie'den al
+$user_ad = $user_data_from_cookie['user_ad'] ?? '';
+$user_soyad = $user_data_from_cookie['user_soyad'] ?? '';
+$user_email = $user_data_from_cookie['user_email'] ?? 'Misafir Kullanıcı';
+$user_id_for_query = $user_data_from_cookie['user_id'] ?? null;
 
 $welcome_name = trim($user_ad . ' ' . $user_soyad);
 if (empty($welcome_name)) {
@@ -48,55 +61,61 @@ $active_tab = $_GET['tab'] ?? 'siparislerim';
 
 // --- SİPARİŞ İPTAL İŞLEMİ ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'iptal_et_siparis' && isset($_POST['siparis_id_iptal'])) {
-    if ($user_id_for_query) { // user_id varsa devam et
+    $redirect_params_on_cancel = '?tab=siparislerim'; // Yönlendirme için temel parametre
+    if ($user_id_for_query) {
         $siparis_id_to_cancel = trim($_POST['siparis_id_iptal']);
         $user_id_for_query_encoded = rawurlencode($user_id_for_query);
         $siparis_id_to_cancel_encoded = rawurlencode($siparis_id_to_cancel);
 
         $check_path = '/rest/v1/siparisler?id=eq.' . $siparis_id_to_cancel_encoded . '&kullanici_id=eq.' . $user_id_for_query_encoded . '&select=siparis_durumu';
+        // supabase_api_request'in son parametresi (use_service_key) RLS politikalarınıza göre ayarlanmalı.
+        // Genellikle bir kullanıcının kendi siparişini okuması için anonim (false) yeterli olabilir.
         $checkOrderStatusResult = supabase_api_request('GET', $check_path, [], [], false);
 
         if (isset($checkOrderStatusResult['data'][0]['siparis_durumu']) && empty($checkOrderStatusResult['error'])) {
             $current_status = $checkOrderStatusResult['data'][0]['siparis_durumu'];
-            if ($current_status === 'beklemede' || $current_status === 'hazırlanıyor') {
+            if ($current_status === 'beklemede' || $current_status === 'hazırlanıyor') { // Küçük harf kontrolü
                 $updateData = ['siparis_durumu' => 'iptal edildi'];
                 $cancel_path = '/rest/v1/siparisler?id=eq.' . $siparis_id_to_cancel_encoded . '&kullanici_id=eq.' . $user_id_for_query_encoded;
-                $cancelResult = supabase_api_request('PATCH', $cancel_path, $updateData, [], false);
+                // Siparişi güncellemek için genellikle service_key (true) gerekebilir veya RLS'de özel izin.
+                $cancelResult = supabase_api_request('PATCH', $cancel_path, $updateData, [], true); // service_key true varsayıyorum
 
                 if (empty($cancelResult['error']) && ($cancelResult['http_code'] === 200 || $cancelResult['http_code'] === 204)) {
-                    $_SESSION['success_message_dashboard'] = "#" . substr($siparis_id_to_cancel, 0, 8) . " numaralı sipariş başarıyla iptal edildi.";
+                    $redirect_params_on_cancel .= '&success_msg=' . urlencode("#" . substr($siparis_id_to_cancel, 0, 8) . " numaralı sipariş başarıyla iptal edildi.");
                 } else {
                     $api_error_msg = $cancelResult['error']['message'] ?? ($cancelResult['data']['message'] ?? 'Bilinmeyen API hatası');
-                    $_SESSION['error_message_dashboard'] = "Sipariş iptal edilirken bir hata oluştu: " . htmlspecialchars($api_error_msg);
+                    $redirect_params_on_cancel .= '&error_msg=' . urlencode("Sipariş iptal edilirken bir hata oluştu: " . $api_error_msg);
                     error_log("Sipariş İptal Hatası (API): " . $api_error_msg . " | Sipariş ID: " . $siparis_id_to_cancel . " | Response: " . json_encode($cancelResult));
                 }
             } else {
-                $_SESSION['error_message_dashboard'] = "Bu sipariş durumu ('" . htmlspecialchars($current_status) . "') nedeniyle iptal edilemez.";
+                $redirect_params_on_cancel .= '&error_msg=' . urlencode("Bu sipariş durumu ('" . $current_status . "') nedeniyle iptal edilemez.");
             }
         } else {
             $error_detail = $checkOrderStatusResult['error']['message'] ?? 'Sipariş bulunamadı veya API hatası.';
-            $_SESSION['error_message_dashboard'] = "Sipariş durumu kontrol edilirken bir hata oluştu: " . htmlspecialchars($error_detail);
+            $redirect_params_on_cancel .= '&error_msg=' . urlencode("Sipariş durumu kontrol edilirken bir hata oluştu: " . $error_detail);
             error_log("Sipariş İptal - Durum Kontrol Hatası: " . $error_detail . " | Sipariş ID: " . $siparis_id_to_cancel . " | Response: " . json_encode($checkOrderStatusResult));
         }
     } else {
-         $_SESSION['error_message_dashboard'] = "Kullanıcı ID bulunamadığı için sipariş iptal edilemedi.";
+         $redirect_params_on_cancel .= '&error_msg=' . urlencode("Kullanıcı ID bulunamadığı için sipariş iptal edilemedi.");
          error_log("Dashboard - Sipariş iptali: Kullanıcı ID bulunamadı.");
     }
-    header('Location: dashboard.php?tab=siparislerim');
+    header('Location: /dashboard.php' . $redirect_params_on_cancel); // YOLU / İLE BAŞLATIN
     exit;
 }
 
 // --- SİPARİŞLERİ ÇEKME (Supabase'den) ---
 $kullanici_siparisleri = [];
-if ($user_id_for_query) { // user_id varsa devam et
+if ($user_id_for_query) {
     $user_id_for_query_encoded = rawurlencode($user_id_for_query);
     $select_fields_orders = rawurlencode('id,siparis_tarihi,toplam_tutar,siparis_durumu,teslimat_adresi');
     $siparisler_path = '/rest/v1/siparisler?kullanici_id=eq.' . $user_id_for_query_encoded . '&select=' . $select_fields_orders . '&order=siparis_tarihi.desc';
+    // Kullanıcının kendi siparişlerini okuması için anonim key (false) genellikle yeterlidir.
     $siparislerResult = supabase_api_request('GET', $siparisler_path, [], [], false);
 
     if (empty($siparislerResult['error']) && !empty($siparislerResult['data'])) {
         $kullanici_siparisleri = $siparislerResult['data'];
     } else if (!empty($siparislerResult['error'])) {
+        // Kullanıcıya bu hatayı göstermek yerine sadece loglayabiliriz.
         error_log("Dashboard - Siparişler çekilirken hata: " . ($siparislerResult['error']['message'] ?? 'Bilinmeyen API hatası') . " | HTTP: " . ($siparislerResult['http_code'] ?? 'N/A') . " | Response: " . json_encode($siparislerResult));
     }
 } else {
@@ -106,9 +125,10 @@ if ($user_id_for_query) { // user_id varsa devam et
 // --- PROFİL BİLGİLERİNİ ÇEKME (Supabase'den - Telefon ve Adres için) ---
 $profil_telefon = '';
 $profil_adres = '';
-if ($user_id_for_query) { // user_id varsa devam et
-    $select_fields_profile = rawurlencode('telefon,adres');
+if ($user_id_for_query) {
+    $select_fields_profile = rawurlencode('telefon,adres'); // 'kullanicilar' tablosundaki sütun adları
     $profil_path = '/rest/v1/kullanicilar?id=eq.' . rawurlencode($user_id_for_query) . '&select=' . $select_fields_profile;
+    // Kullanıcının kendi profilini okuması için anonim key (false) genellikle yeterlidir.
     $profilResult = supabase_api_request('GET', $profil_path, [], [], false);
 
     if (empty($profilResult['error']) && !empty($profilResult['data']) && isset($profilResult['data'][0])) {
@@ -128,6 +148,8 @@ if ($user_id_for_query) { // user_id varsa devam et
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kontrol Paneli - AŞIKZADE</title>
     <style>
+        /* CSS Stilleriniz (önceki mesajdaki gibi) buraya gelecek */
+        /* ... */
         :root {
             --asikzade-content-bg: #fef6e6;
             --asikzade-green: #8ba86d;
@@ -154,7 +176,7 @@ if ($user_id_for_query) { // user_id varsa devam et
             padding: 15px 50px; z-index: 1000; background: rgba(254, 246, 230, 0.95);
             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 1px 0 rgba(0,0,0,0.05);
         }
-        .logo-container { display: flex; align-items: center; gap: 10px; }
+        .logo-container { display: flex; align-items: center; gap: 10px; text-decoration: none; }
         .logo-container img { height: 48px; }
         .logo-text { font-size: 22px; font-weight: 600; letter-spacing: 1.5px; color: var(--asikzade-dark-text); text-decoration: none; }
         .main-nav { display: flex; align-items: center; }
@@ -173,24 +195,30 @@ if ($user_id_for_query) { // user_id varsa devam et
         }
         .profile-dropdown { position: relative; }
         .dropdown-menu {
-            display: none; position: absolute; top: calc(100% + 5px); right: 0;
+            display: none; position: absolute; top: calc(100% + 10px); right: 0; /* Biraz boşluk ekledim */
             background-color: white; border: 1px solid var(--asikzade-border);
-            border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 1001; min-width: 180px; padding: 5px 0;
+            border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* Gölgeyi yumuşattım */
+            z-index: 1001; min-width: 220px; padding: 8px 0; /* Padding ayarı */
         }
-        .profile-dropdown:hover .dropdown-menu,
-        .profile-dropdown .nav-user-icon:focus + .dropdown-menu,
-        .dropdown-menu:hover { display: block; }
+        .profile-dropdown:hover .dropdown-menu, /* Hover'da aç */
+        .profile-dropdown .nav-user-icon:focus + .dropdown-menu, /* Focus'ta aç (klavye navigasyonu için) */
+        .dropdown-menu:hover { display: block; } /* Menü üzerindeyken açık kal */
+
         .dropdown-menu a {
-            display: block; padding: 10px 15px; text-decoration: none;
+            display: block; padding: 10px 20px; text-decoration: none; /* Padding ayarı */
             color: var(--asikzade-dark-text); font-size: 0.95rem; white-space: nowrap;
+            transition: background-color 0.2s ease; /* Geçiş efekti */
         }
         .dropdown-menu a:hover { background-color: #f0f0f0; }
         .dropdown-menu .dropdown-user-info {
-            padding: 10px 15px; border-bottom: 1px solid var(--asikzade-border); margin-bottom: 5px;
+            padding: 12px 20px; border-bottom: 1px solid var(--asikzade-border); margin-bottom: 8px; /* Padding ve margin ayarı */
         }
-        .dropdown-user-info .user-name { font-weight: bold; display: block; font-size: 1rem;}
+        .dropdown-user-info .user-name { font-weight: 600; display: block; font-size: 1rem; margin-bottom: 2px;} /* Font ağırlığı ve margin */
         .dropdown-user-info .user-email { font-size: 0.85rem; color: var(--asikzade-gray); display: block;}
+        .dropdown-menu a.logout-link { color: #c0392b; font-weight: 500;} /* Çıkış linki için özel stil */
+        .dropdown-menu a.logout-link:hover { background-color: #f8d7da; }
+
+
         .dashboard-page-wrapper { flex-grow: 1; padding-top: 100px; padding-bottom: 60px; width: 100%; }
         .dashboard-container {
             max-width: 1000px; margin: 0 auto; padding: 0;
@@ -232,14 +260,15 @@ if ($user_id_for_query) { // user_id varsa devam et
         .orders-table .order-inspect-btn, .orders-table .order-cancel-btn {
             background-color: var(--asikzade-green); color: white; border: none;
             padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; margin: 0 3px;
+            transition: background-color 0.2s ease;
         }
         .orders-table .order-inspect-btn:hover { background-color: var(--asikzade-dark-green); }
         .orders-table .order-cancel-btn { background-color: #e74c3c; }
         .orders-table .order-cancel-btn:hover { background-color: #c0392b; }
-        .orders-table .order-cancel-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        .orders-table .order-cancel-btn:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7;}
         .status-beklemede { color: #e67e22; font-weight: bold; }
-        .status-hazirlaniyor, .status-hazırlanıyor { color: #3498db; font-weight: bold; }
-        .status-gonderildi, .status-gönderildi { color: #27ae60; font-weight: bold; }
+        .status-hazirlaniyor, .status-hazırlanıyor { color: #3498db; font-weight: bold; } /* Türkçe karakter için eklendi */
+        .status-gonderildi, .status-gönderildi { color: #27ae60; font-weight: bold; } /* Türkçe karakter için eklendi */
         .status-teslim-edildi { color: var(--asikzade-green); font-weight: bold; }
         .status-iptal-edildi { color: #c0392b; font-weight: bold; }
         .profile-info-group { margin-bottom: 18px; }
@@ -261,8 +290,8 @@ if ($user_id_for_query) { // user_id varsa devam et
         @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
         .modal-content {
             background-color: #fff; margin: auto; padding: 25px 30px;
-            border: 1px solid #888; width: 90%; max-width: 750px;
-            border-radius: 8px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            border: none; width: 90%; max-width: 750px; /* Border kaldırıldı */
+            border-radius: 8px; position: relative; box-shadow: 0 5px 20px rgba(0,0,0,0.2); /* Gölge yumuşatıldı */
             animation: modalSlideIn 0.3s ease-out;
         }
         @keyframes modalSlideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -277,12 +306,13 @@ if ($user_id_for_query) { // user_id varsa devam et
         .order-details-table th { background-color: #f8f8f8; }
         .order-details-table img.product-thumbnail { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; margin-right: 10px; vertical-align: middle;}
         .order-detail-section { margin-bottom: 15px; font-size: 0.95rem; }
-        .order-detail-section strong { display: inline-block; min-width: 150px; color: var(--asikzade-gray);}
+        .order-detail-section strong { display: inline-block; min-width: 150px; color: var(--asikzade-gray); font-weight: 500; } /* Ağırlık eklendi */
         .order-detail-section span { font-weight: 500; }
-        .modal-footer { margin-top: 20px; text-align: right; }
+        .modal-footer { margin-top: 25px; text-align: right; padding-top: 15px; border-top: 1px solid var(--asikzade-border); } /* Padding ve border eklendi */
         .modal-footer button {
             background-color: var(--asikzade-gray); color: white; border: none;
-            padding: 8px 15px; border-radius: 4px; cursor: pointer;
+            padding: 8px 18px; border-radius: 5px; cursor: pointer; /* Padding ve radius ayarı */
+            transition: background-color 0.2s ease;
         }
         .modal-footer button:hover { background-color: #555; }
         .footer {
@@ -291,12 +321,15 @@ if ($user_id_for_query) { // user_id varsa devam et
         }
         .footer-content { max-width: 1200px; margin: 0 auto; padding: 0 50px; text-align: center; }
         .footer-content p { font-size: 0.9rem; color: var(--asikzade-gray); }
+
+        /* Responsive Ayarlamalar */
         @media (max-width: 992px) {
              .dashboard-container { flex-direction: column; }
              .dashboard-sidebar { flex: 0 0 auto; width:100%; border-radius: 8px 8px 0 0; border-right: none; border-bottom: 1px solid var(--asikzade-border);}
              .dashboard-sidebar ul { display: flex; flex-wrap: wrap; justify-content: center; }
              .dashboard-sidebar ul li a { border-left: none; border-bottom: 3px solid transparent; padding: 10px 15px;}
              .dashboard-sidebar ul li a.active { border-bottom-color: var(--asikzade-green); border-left-color:transparent;}
+             .dashboard-sidebar h2 { text-align: center; padding-bottom: 10px; margin-bottom: 10px;}
         }
         @media (max-width: 768px) {
             .header { padding: 12px 20px; }
@@ -311,14 +344,27 @@ if ($user_id_for_query) { // user_id varsa devam et
             .modal-content { width: 95%; padding: 20px;}
             .modal-title {font-size: 1.3rem;}
         }
+         @media (max-width: 576px) { /* Daha küçük ekranlar için ek ayarlar */
+            .header { padding: 10px 15px; }
+            .logo-container { gap: 5px;}
+            .logo-container img { height: 36px; }
+            .logo-text { font-size: 17px; }
+            .user-actions-group { gap: 10px; }
+            .dashboard-sidebar ul li a { font-size: 0.9rem; padding: 8px 12px;}
+            .dashboard-content { padding: 15px; }
+            .tab-content h3 { font-size: 1.3rem; margin-bottom: 20px;}
+            .orders-table { font-size: 0.8rem; }
+            .actions-cell form, .actions-cell button { display: block; width: 100%; margin-bottom: 5px;}
+            .actions-cell button { margin-left:0; margin-right: 0;}
+        }
     </style>
 </head>
 <body>
     <header class="header" id="mainHeader">
-        <div class="logo-container">
-            <a href="index.php"><img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo"></a>
-            <a href="index.php" class="logo-text"></a>
-        </div>
+        <a href="/index.php" class="logo-container"> <!-- YOLU / İLE BAŞLATIN -->
+            <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo">
+            <span class="logo-text">AŞIKZADE</span> <!-- Metni ekledim -->
+        </a>
         <nav class="main-nav">
             <div class="user-actions-group">
                 <div class="profile-dropdown">
@@ -333,12 +379,12 @@ if ($user_id_for_query) { // user_id varsa devam et
                             <span class="user-name"><?php echo htmlspecialchars($welcome_name); ?></span>
                             <span class="user-email"><?php echo htmlspecialchars($user_email); ?></span>
                         </div>
-                        <a href="dashboard.php?tab=profilim" data-tab-link="profilim">Profilim</a>
-                        <a href="dashboard.php?tab=siparislerim" data-tab-link="siparislerim">Siparişlerim</a>
-                        <a href="logout.php" style="border-top: 1px solid var(--asikzade-border); color: #c0392b;">Çıkış Yap</a>
+                        <a href="/dashboard.php?tab=profilim" data-tab-link="profilim">Profilim</a>
+                        <a href="/dashboard.php?tab=siparislerim" data-tab-link="siparislerim">Siparişlerim</a>
+                        <a href="/logout.php" class="logout-link">Çıkış Yap</a>  <!-- YOLU / İLE BAŞLATIN -->
                     </div>
                 </div>
-                <a href="sepet.php" class="nav-cart-icon" aria-label="Sepetim">
+                <a href="/sepet.php" class="nav-cart-icon" aria-label="Sepetim"> <!-- YOLU / İLE BAŞLATIN -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
                         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
@@ -356,15 +402,15 @@ if ($user_id_for_query) { // user_id varsa devam et
             <aside class="dashboard-sidebar">
                 <h2>Hesabım</h2>
                 <ul>
-                    <li><a href="dashboard.php?tab=siparislerim" class="<?php echo ($active_tab === 'siparislerim' ? 'active' : ''); ?>" data-tab="siparislerim">Siparişlerim</a></li>
-                    <li><a href="dashboard.php?tab=profilim" class="<?php echo ($active_tab === 'profilim' ? 'active' : ''); ?>" data-tab="profilim">Profil Bilgilerim</a></li>
-                    <li><a href="logout.php">Çıkış Yap</a></li>
+                    <li><a href="/dashboard.php?tab=siparislerim" class="<?php echo ($active_tab === 'siparislerim' ? 'active' : ''); ?>" data-tab="siparislerim">Siparişlerim</a></li>
+                    <li><a href="/dashboard.php?tab=profilim" class="<?php echo ($active_tab === 'profilim' ? 'active' : ''); ?>" data-tab="profilim">Profil Bilgilerim</a></li>
+                    <li><a href="/logout.php">Çıkış Yap</a></li> <!-- YOLU / İLE BAŞLATIN -->
                 </ul>
             </aside>
             <section class="dashboard-content">
                 <?php if ($success_message_dashboard): ?>
                     <div class="message-box message-success">
-                        <?php echo htmlspecialchars_decode($success_message_dashboard); // Eğer mesajda HTML tag varsa (örn: strong) ?>
+                        <?php echo htmlspecialchars($success_message_dashboard); ?>
                     </div>
                 <?php endif; ?>
                 <?php if ($error_message_dashboard): ?>
@@ -376,6 +422,7 @@ if ($user_id_for_query) { // user_id varsa devam et
                 <div id="siparislerim" class="tab-content <?php echo ($active_tab === 'siparislerim' ? 'active' : ''); ?>">
                     <h3>Siparişlerim</h3>
                     <?php if (!empty($kullanici_siparisleri)): ?>
+                        <div style="overflow-x:auto;"> <!-- Mobil için tablo kaydırma -->
                         <table class="orders-table">
                             <thead>
                                 <tr>
@@ -389,13 +436,15 @@ if ($user_id_for_query) { // user_id varsa devam et
                             <tbody>
                                 <?php foreach ($kullanici_siparisleri as $siparis): ?>
                                 <tr>
-                                    <td>#<?php echo htmlspecialchars(substr($siparis['id'], 0, 8)); ?></td>
+                                    <td>#<?php echo htmlspecialchars(substr($siparis['id'], 0, 8)); ?>...</td>
                                     <td><?php echo htmlspecialchars(date('d.m.Y H:i', strtotime($siparis['siparis_tarihi']))); ?></td>
-                                    <td><?php echo htmlspecialchars(number_format($siparis['toplam_tutar'], 2)); ?> TL</td>
+                                    <td><?php echo htmlspecialchars(number_format($siparis['toplam_tutar'], 2, ',', '.')); ?> TL</td>
                                     <td>
                                         <?php
                                             $status_class_raw = strtolower($siparis['siparis_durumu']);
-                                            $status_class = preg_replace('/[^a-z0-9]+/', '-', $status_class_raw);
+                                            // Türkçe karakterleri ve boşlukları tireye çevir
+                                            $status_class = str_replace(['ı', 'ğ', 'ü', 'ş', 'ö', 'ç', ' '], ['i', 'g', 'u', 's', 'o', 'c', '-'], $status_class_raw);
+                                            $status_class = preg_replace('/[^a-z0-9-]+/', '', $status_class); // Sadece harf, rakam ve tire kalsın
                                         ?>
                                         <span class="status-<?php echo htmlspecialchars($status_class); ?>">
                                             <?php echo htmlspecialchars(ucfirst($siparis['siparis_durumu'])); ?>
@@ -404,7 +453,7 @@ if ($user_id_for_query) { // user_id varsa devam et
                                     <td class="actions-cell">
                                         <button class="order-inspect-btn" data-order-id="<?php echo htmlspecialchars($siparis['id']); ?>">İncele</button>
                                         <?php if ($siparis['siparis_durumu'] === 'beklemede' || $siparis['siparis_durumu'] === 'hazırlanıyor'): ?>
-                                            <form action="dashboard.php?tab=siparislerim" method="POST" style="display:inline;" onsubmit="return confirm('Bu siparişi iptal etmek istediğinizden emin misiniz?');">
+                                            <form action="/dashboard.php?tab=siparislerim" method="POST" style="display:inline;" onsubmit="return confirm('Bu siparişi iptal etmek istediğinizden emin misiniz?');">
                                                 <input type="hidden" name="action" value="iptal_et_siparis">
                                                 <input type="hidden" name="siparis_id_iptal" value="<?php echo htmlspecialchars($siparis['id']); ?>">
                                                 <button type="submit" class="order-cancel-btn">İptal Et</button>
@@ -417,9 +466,10 @@ if ($user_id_for_query) { // user_id varsa devam et
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
+                        </div>
                     <?php else: ?>
                         <p>Henüz kayıtlı bir siparişiniz bulunmamaktadır.</p>
-                        <p><a href="index.php" style="color:var(--asikzade-green); text-decoration:none; font-weight:500;">Hemen Alışverişe Başla!</a></p>
+                        <p><a href="/index.php" style="color:var(--asikzade-green); text-decoration:none; font-weight:500;">Hemen Alışverişe Başla!</a></p> <!-- YOLU / İLE BAŞLATIN -->
                     <?php endif; ?>
                 </div>
 
@@ -442,6 +492,7 @@ if ($user_id_for_query) { // user_id varsa devam et
                         <span><?php echo nl2br(htmlspecialchars(!empty($profil_adres) ? $profil_adres : 'Belirtilmemiş')); ?></span>
                     </div>
                     <p style="margin-top:25px; font-size:0.9rem; color: var(--asikzade-gray);">
+                        Profil bilgilerinizi güncellemek veya şifrenizi değiştirmek için lütfen
                         <a href="mailto:destek@asikzade.com.tr" style="color:var(--asikzade-green);">destek ekibimizle</a> iletişime geçin.
                     </p>
                 </div>
@@ -457,7 +508,7 @@ if ($user_id_for_query) { // user_id varsa devam et
                 <p>Yükleniyor...</p>
             </div>
             <div class="modal-footer">
-                <button onclick="closeModal()">Kapat</button>
+                <button type="button" onclick="closeModal()">Kapat</button> <!-- type="button" eklendi -->
             </div>
         </div>
     </div>
@@ -475,7 +526,7 @@ if ($user_id_for_query) { // user_id varsa devam et
         const orderInspectButtons = document.querySelectorAll('.order-inspect-btn');
         const modal = document.getElementById('orderDetailModal');
         const modalContentDiv = document.getElementById('modalOrderDetailContent');
-        const closeModalBtn = document.querySelector('.modal-close');
+        const closeModalBtns = document.querySelectorAll('.modal-close, .modal-footer button'); // Kapatma butonlarını seç
         const dropdownTabLinks = document.querySelectorAll('.dropdown-menu a[data-tab-link]');
 
         function showTab(tabId) {
@@ -486,22 +537,32 @@ if ($user_id_for_query) { // user_id varsa devam et
             if (activeContent) activeContent.classList.add('active');
             if (activeLink) activeLink.classList.add('active');
 
+            // Dropdown menüdeki linklerin aktif durumunu da senkronize et
             dropdownTabLinks.forEach(ddLink => {
                 ddLink.classList.toggle('active', ddLink.getAttribute('data-tab-link') === tabId);
             });
         }
 
         function handleTabNavigation(event, linkElement) {
-            if (linkElement.getAttribute('href') === 'logout.php') return true;
-            event.preventDefault();
+            // Eğer logout linkiyse, normal davranışına izin ver
+            if (linkElement.getAttribute('href') === '/logout.php') return true; // YOLU / İLE BAŞLATIN
+
+            event.preventDefault(); // Diğer linkler için varsayılan davranışı engelle
             const tabId = linkElement.getAttribute('data-tab') || linkElement.getAttribute('data-tab-link');
             if (tabId) {
                 const url = new URL(window.location);
                 url.searchParams.set('tab', tabId);
-                window.history.pushState({}, '', url);
+                window.history.pushState({}, '', url); // URL'yi güncelle (sayfa yenilenmeden)
                 showTab(tabId);
-                const openDropdown = document.querySelector('.profile-dropdown .dropdown-menu[style*="block"]');
-                if (openDropdown) openDropdown.style.display = 'none';
+
+                // Eğer dropdown içinden tıklandıysa, dropdown'ı kapat
+                const openDropdown = linkElement.closest('.dropdown-menu');
+                if (openDropdown) {
+                    // Gerekirse dropdown'ı gizleme mantığını buraya ekleyin
+                    // Örneğin: openDropdown.style.display = 'none';
+                    // Veya hover ile çalışıyorsa, focus'u kaldırabilirsiniz.
+                    linkElement.blur(); // Focus'u kaldırarak hover efektinin bitmesini sağlayabilir
+                }
             }
             return false;
         }
@@ -517,44 +578,56 @@ if ($user_id_for_query) { // user_id varsa devam et
             });
         });
 
+        // Sayfa yüklendiğinde URL'deki tab'ı kontrol et ve göster
         const initialTab = new URLSearchParams(window.location.search).get('tab');
         if (initialTab && document.getElementById(initialTab)) {
             showTab(initialTab);
         } else {
+            // Varsayılan olarak 'siparislerim' tabını göster
             const defaultTabLink = document.querySelector('.dashboard-sidebar ul li a[data-tab="siparislerim"]');
             if (defaultTabLink) showTab(defaultTabLink.getAttribute('data-tab'));
-            else {
+            else { // Eğer 'siparislerim' yoksa ilk bulunan tab'ı göster
                  const firstTabLink = document.querySelector('.dashboard-sidebar ul li a[data-tab]');
                  if(firstTabLink) showTab(firstTabLink.getAttribute('data-tab'));
             }
         }
 
+        // Modal işlemleri
         function openModal() {
             if(modal) modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Arka plan kaymasını engelle
         }
-        window.closeModal = function() {
+        window.closeModal = function() { // Fonksiyonu global yap
             if(modal) modal.style.display = 'none';
-            if(modalContentDiv) modalContentDiv.innerHTML = '<p>Yükleniyor...</p>';
+            if(modalContentDiv) modalContentDiv.innerHTML = '<p>Yükleniyor...</p>'; // İçeriği sıfırla
+            document.body.style.overflow = ''; // Kaymayı geri aç
         }
-        if(closeModalBtn) closeModalBtn.onclick = window.closeModal;
-        window.onclick = function(event) {
+
+        closeModalBtns.forEach(btn => btn.onclick = window.closeModal); // Tüm kapatma butonlarına ata
+
+        window.addEventListener('click', function(event) { // Dışa tıklayınca kapat
             if (event.target == modal) {
                 window.closeModal();
             }
-        }
+        });
+         document.addEventListener('keydown', function(event) { // Esc ile kapat
+            if (event.key === "Escape" && modal && modal.style.display === 'flex') {
+                window.closeModal();
+            }
+        });
 
         orderInspectButtons.forEach(button => {
             button.addEventListener('click', function() {
                 const orderId = this.getAttribute('data-order-id');
                 openModal();
-                modalContentDiv.innerHTML = `<p><b>Sipariş No:</b> #${orderId.substring(0,8)}... detayları yükleniyor...</p>`;
+                modalContentDiv.innerHTML = `<p style="text-align:center; padding:20px;"><b>Sipariş No:</b> #${orderId.substring(0,8)}... detayları yükleniyor...</p>`;
 
-                // get_order_details.php'nin yolunu projenizin yapısına göre ayarlayın
-                fetch(`get_order_details.php?order_id=${orderId}`)
+                // get_order_details.php'nin yolunu projenizin yapısına göre ayarlayın (örn: /api/get_order_details.php)
+                fetch(`/get_order_details.php?order_id=${orderId}`) // YOLU / İLE BAŞLATIN (Eğer kök dizindeyse)
                     .then(response => {
                         if (!response.ok) {
                             return response.text().then(text => {
-                                throw new Error(`Sunucu hatası: ${response.status} ${response.statusText}. Yanıt: ${text.substring(0, 200)}...`);
+                                throw new Error(`Sunucu hatası (${response.status}). Yanıt: ${text.substring(0, 200)}`);
                             });
                         }
                         return response.text().then(text => {
@@ -562,91 +635,63 @@ if ($user_id_for_query) { // user_id varsa devam et
                                 return JSON.parse(text);
                             } catch (e) {
                                 console.error("JSON parse edilemedi. get_order_details.php'den gelen ham yanıt:", text);
-                                throw new Error(`Sunucudan beklenmedik bir yanıt formatı geldi. Hata: ${e.message}. Yanıt başlangıcı: ${text.substring(0,200)}...`);
+                                throw new Error(`Sunucudan beklenmedik yanıt formatı. Hata: ${e.message}.`);
                             }
                         });
                     })
                     .then(data => {
                         if (data.error) {
-                            modalContentDiv.innerHTML = `<p style="color:red;">Hata: ${data.error}</p>`;
+                            modalContentDiv.innerHTML = `<p style="color:var(--message-error-text); padding:20px; text-align:center;">Hata: ${data.error}</p>`;
                         } else {
                             let detailsHtml = '';
                             if(data.order_info) {
-                                detailsHtml += `<div class="order-detail-section"><strong>Sipariş No:</strong> <span>#${String(data.order_info.id || '').substring(0,8)}</span></div>`;
+                                detailsHtml += `<div class="order-detail-section"><strong>Sipariş No:</strong> <span>#${String(data.order_info.id || '').substring(0,8)}...</span></div>`;
                                 detailsHtml += `<div class="order-detail-section"><strong>Sipariş Tarihi:</strong> <span>${data.order_info.siparis_tarihi ? new Date(data.order_info.siparis_tarihi).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</span></div>`;
-                                detailsHtml += `<div class="order-detail-section"><strong>Teslimat Adresi:</strong><br><span>${(data.order_info.teslimat_adresi || 'Belirtilmemiş').replace(/\n/g, '<br>')}</span></div>`;
-                                detailsHtml += `<div class="order-detail-section"><strong>Toplam Tutar:</strong> <span>${data.order_info.toplam_tutar ? parseFloat(data.order_info.toplam_tutar).toFixed(2) : '0.00'} TL</span></div>`;
+                                detailsHtml += `<div class="order-detail-section" style="margin-bottom: 10px;"><strong>Teslimat Adresi:</strong><br><div style="margin-top:5px; padding:8px; background-color:#f9f9f9; border-radius:4px; font-size:0.9em;">${(data.order_info.teslimat_adresi || 'Belirtilmemiş').replace(/\n/g, '<br>')}</div></div>`;
+                                detailsHtml += `<div class="order-detail-section"><strong>Toplam Tutar:</strong> <span>${data.order_info.toplam_tutar ? parseFloat(data.order_info.toplam_tutar).toFixed(2).replace('.',',') : '0,00'} TL</span></div>`;
 
                                 let statusClassModal = 'bilinmiyor';
                                 if (data.order_info.siparis_durumu) {
-                                    statusClassModal = String(data.order_info.siparis_durumu).toLowerCase();
-                                    statusClassModal = statusClassModal.replace(/[^a-z0-9]+/g, '-');
+                                    let status_raw_modal = String(data.order_info.siparis_durumu).toLowerCase();
+                                    statusClassModal = status_raw_modal.replace(/[^a-z0-9]+/g, '-').replace('ı','i').replace('ğ','g').replace('ü','u').replace('ş','s').replace('ö','o').replace('ç','c');
                                 }
                                 detailsHtml += `<div class="order-detail-section"><strong>Sipariş Durumu:</strong> <span class="status-${statusClassModal}">${data.order_info.siparis_durumu || 'Bilinmiyor'}</span></div>`;
                             }
 
                             if (data.items && data.items.length > 0) {
-                                detailsHtml += '<h5 style="margin-top:20px; margin-bottom:10px; font-size:1.1rem;">Ürünler:</h5><table class="order-details-table"><thead><tr><th>Resim</th><th>Ürün Adı</th><th>Miktar</th><th>Birim Fiyat</th><th>Ara Toplam</th></tr></thead><tbody>';
+                                detailsHtml += '<h5 style="margin-top:25px; margin-bottom:15px; font-size:1.2rem; color:var(--asikzade-dark-text); padding-bottom:10px; border-bottom:1px solid var(--asikzade-border);">Sipariş İçeriği</h5>';
+                                detailsHtml += '<div style="overflow-x:auto;"><table class="order-details-table"><thead><tr><th></th><th>Ürün Adı</th><th>Miktar</th><th>Birim Fiyat</th><th>Ara Toplam</th></tr></thead><tbody>';
                                 
-                                const productsCatalog = <?php
-                                    // products_data.php'den gelen $products dizisini doğrudan JSON yapalım.
-                                    // Eğer $products ilişkisel bir diziyse (ID'ler anahtar ise) array_values() kullanın.
-                                    // Eğer zaten sayısal indeksli bir diziyse, doğrudan $products kullanın.
-                                    // Bu kod, $products'ın sayısal indeksli bir dizi olduğunu veya
-                                    // array_values ile sayısal indeksli hale getirildiğini varsayar.
-                                    $processedProducts = [];
-                                    if (isset($products) && is_array($products)) {
-                                        // $products'ın yapısına göre (sayısal indeksli mi, yoksa ID'ler anahtar mı)
-                                        // Eğer $products zaten [0 => ['name'=>...], 1 => ...] gibiyse:
-                                        // $processedProducts = $products;
-                                        // Eğer $products ['urun_id1' => ['name'=>...], 'urun_id2' => ...] gibiyse:
-                                        $processedProducts = array_values($products);
-                                    }
-                                    echo json_encode($processedProducts);
-                                ?>;
-                                // console.log("Dashboard - productsCatalog (PHP'den gelen ürünler):", productsCatalog);
+                                const productsDataPHP = <?php echo json_encode(isset($products) && is_array($products) ? array_values($products) : []); ?>;
 
                                 data.items.forEach(item => {
-                                    let imageUrl = 'https://via.placeholder.com/50x50.png?text=ResimYok';
+                                    let imageUrl = 'https://via.placeholder.com/50x50.png?text=?';
                                     const itemNameFromOrder = item.urun_adi ? String(item.urun_adi).toLowerCase().trim() : null;
                                     
-                                    // console.log(`Dashboard - Sipariş Kalemi (aranan): '${itemNameFromOrder}'`);
-
-                                    if (itemNameFromOrder && Array.isArray(productsCatalog)) {
-                                        for (const productInCatalog of productsCatalog) {
-                                            if (productInCatalog && productInCatalog.name) {
-                                                const catalogProductName = String(productInCatalog.name).toLowerCase().trim();
-                                                if (catalogProductName === itemNameFromOrder) {
-                                                    // KENDİ products_data.php'NİZDEKİ GERÇEK RESİM ALANI ADLARINI KULLANIN:
-                                                    // Örneğin: productInCatalog.resim_url || productInCatalog.gorsel || ...
-                                                    imageUrl = productInCatalog.image || productInCatalog.hero_image || productInCatalog.thumbnail || imageUrl;
-                                                    // console.log(`Dashboard - Eşleşme bulundu: ${itemNameFromOrder} -> Resim: ${imageUrl}`);
-                                                    break;
-                                                }
-                                            }
+                                    if (itemNameFromOrder && Array.isArray(productsDataPHP)) {
+                                        const foundProduct = productsDataPHP.find(p => p && p.name && String(p.name).toLowerCase().trim() === itemNameFromOrder);
+                                        if (foundProduct) {
+                                            imageUrl = foundProduct.image || foundProduct.hero_image || foundProduct.thumbnail || imageUrl;
                                         }
-                                    }
-                                    if (imageUrl === 'https://via.placeholder.com/50x50.png?text=ResimYok' && itemNameFromOrder) {
-                                        // console.warn(`Dashboard - Resim bulunamadı: '${itemNameFromOrder}'`);
                                     }
                                     
                                     detailsHtml += `<tr>
                                         <td><img src="${imageUrl}" alt="${item.urun_adi ? String(item.urun_adi).substring(0,50) : 'Ürün'}" class="product-thumbnail"></td>
-                                        <td>${item.urun_adi || 'N/A'}</td>
+                                        <td>${item.urun_adi || 'Bilinmeyen Ürün'}</td>
                                         <td>${item.miktar || 0}</td>
-                                        <td>${item.birim_fiyat ? parseFloat(item.birim_fiyat).toFixed(2) : '0.00'} TL</td>
-                                        <td>${item.ara_toplam ? parseFloat(item.ara_toplam).toFixed(2) : '0.00'} TL</td>
+                                        <td>${item.birim_fiyat ? parseFloat(item.birim_fiyat).toFixed(2).replace('.', ',') : '0,00'} TL</td>
+                                        <td>${item.ara_toplam ? parseFloat(item.ara_toplam).toFixed(2).replace('.', ',') : '0,00'} TL</td>
                                     </tr>`;
                                 });
-                                detailsHtml += '</tbody></table>';
+                                detailsHtml += '</tbody></table></div>';
                             } else {
-                                detailsHtml += '<p style="margin-top:15px;">Bu siparişe ait ürün detayı bulunamadı.</p>';
+                                detailsHtml += '<p style="margin-top:20px; text-align:center; color:var(--asikzade-gray);">Bu siparişe ait ürün detayı bulunamadı.</p>';
                             }
                             modalContentDiv.innerHTML = detailsHtml;
                         }
                     })
                     .catch(error => {
-                        modalContentDiv.innerHTML = `<p style="color:red;">Detaylar alınırken bir hata oluştu: ${error.message}</p>`;
+                        modalContentDiv.innerHTML = `<p style="color:var(--message-error-text); padding:20px; text-align:center;">Sipariş detayları yüklenirken bir hata oluştu. Lütfen konsolu kontrol edin.</p>`;
                         console.error('Dashboard - Sipariş detayları çekilirken hata:', error);
                     });
             });
@@ -655,3 +700,6 @@ if ($user_id_for_query) { // user_id varsa devam et
 </script>
 </body>
 </html>
+<?php
+ob_end_flush(); // Çıktı tamponunu gönder
+?>
