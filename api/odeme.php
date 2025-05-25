@@ -192,7 +192,21 @@ if(isset($_GET['error_msg_odeme'])) {
         .secure-info { font-size: 0.85rem; color: var(--asikzade-gray); margin-top: 10px; text-align: center; } .secure-info svg { vertical-align: middle; margin-right: 5px; }
         .order-summary-item { display: flex; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--asikzade-border); } .order-summary-item:last-child { border-bottom: none; margin-bottom: 0; } .order-summary-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 15px; border: 1px solid var(--asikzade-border); } .item-details { flex-grow: 1; } .item-name { font-weight: 500; font-size: 0.95rem;} .item-quantity { font-size: 0.85rem; color: var(--asikzade-gray); } .item-price-summary { font-weight: 500; }
         .discount-code-form { display: flex; margin-bottom: 20px; margin-top: 20px; } 
-        .discount-code-form select { flex-grow: 1; padding: 10px 12px; border: 1px solid var(--input-border-color); border-radius: 5px 0 0 5px; font-size: 0.95rem; -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%237a7a7a' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px; }
+        .discount-code-form select {
+            flex-grow: 1;
+            min-width: 0; /* EKLENEN/DEĞİŞTİRİLEN SATIR */
+            padding: 10px 12px;
+            border: 1px solid var(--input-border-color);
+            border-radius: 5px 0 0 5px;
+            font-size: 0.95rem;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%237a7a7a' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px;
+        }
         .discount-code-form button { padding: 10px 18px; border: 1px solid var(--asikzade-green); background-color: var(--asikzade-green); color: var(--button-primary-text); border-radius: 0 5px 5px 0; cursor: pointer; font-weight: 500; white-space: nowrap; }
         .totals-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; } .totals-row.grand-total { font-size: 1.25rem; font-weight: bold; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--asikzade-dark-text); } .totals-row .label { color: var(--asikzade-gray); } .totals-row .value { font-weight: 500; }
         .totals-row.discount-applied-row .label, .totals-row.discount-applied-row .value { color: var(--asikzade-green); }
