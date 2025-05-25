@@ -13,7 +13,6 @@ if (isset($_COOKIE[$user_cookie_name])) {
         $user_logged_in = true;
     } else {
         $user_data_from_cookie = []; 
-        // İsteğe bağlı: Bozuk cookie'yi temizle
         // setcookie($user_cookie_name, '', time() - 3600, "/"); 
     }
 }
@@ -52,10 +51,7 @@ if (function_exists('get_cart_count')) {
 }
 
 $cart_contents_summary = [];
-$sub_total_summary = 0;
-$shipping_cost = 50.00;
-$estimated_taxes = 0;
-$grand_total_summary = 0;
+$sub_total_summary = 0; // This is the sum of (price * quantity) for all cart items
 
 if (isset($_COOKIE['asikzade_cart'])) {
     $cart_cookie_data = json_decode($_COOKIE['asikzade_cart'], true);
@@ -84,9 +80,60 @@ if (empty($cart_contents_summary)) {
     foreach ($cart_contents_summary as $item) {
         $sub_total_summary += $item['subtotal'];
     }
-    $estimated_taxes = $sub_total_summary * 0.18;
-    $grand_total_summary = $sub_total_summary + $shipping_cost + $estimated_taxes;
 }
+
+// --- DISCOUNT CODE LOGIC ---
+$shipping_cost_default = 50.00;
+$current_shipping_cost = $shipping_cost_default;
+
+$discount_codes_available = [
+    // code => [type, value, description]
+    "WELCOME10" => ["type" => "percentage", "value" => 10, "description" => "10% Hoşgeldin İndirimi"],
+    "SAVE25FIXED" => ["type" => "fixed", "value" => 25, "description" => "25 TL Sabit İndirim"],
+    "HOLIDAY50" => ["type" => "fixed", "value" => 50, "description" => "50 TL Bayram İndirimi"],
+    "FREESHIPPINGMAY" => ["type" => "free_shipping", "value" => $shipping_cost_default, "description" => "Ücretsiz Kargo (Mayıs Promosyonu)"],
+    "YUZDE20PROMO" => ["type" => "percentage", "value" => 20, "description" => "Özel Promosyon: 20% İndirim"]
+];
+
+$selected_coupon_code = null;
+$item_level_discount_amount = 0; // Total monetary discount on items
+$coupon_description_for_display = ""; // Description of the applied coupon
+
+// Check if discount form was submitted (page reloaded with POST)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['discount_code_select_submit'])) {
+    $posted_coupon_code = $_POST['discount_code_select'] ?? '';
+    if (!empty($posted_coupon_code) && isset($discount_codes_available[$posted_coupon_code])) {
+        $selected_coupon_code = $posted_coupon_code;
+        $coupon_details = $discount_codes_available[$selected_coupon_code];
+        $coupon_description_for_display = $coupon_details['description'];
+
+        if ($coupon_details['type'] == 'percentage') {
+            $item_level_discount_amount = ($sub_total_summary * $coupon_details['value']) / 100;
+        } elseif ($coupon_details['type'] == 'fixed') {
+            $item_level_discount_amount = $coupon_details['value'];
+            // Ensure discount doesn't exceed subtotal
+            if ($item_level_discount_amount > $sub_total_summary) {
+                $item_level_discount_amount = $sub_total_summary;
+            }
+        } elseif ($coupon_details['type'] == 'free_shipping') {
+            $current_shipping_cost = 0;
+            // item_level_discount_amount remains 0 for free shipping type, its effect is on shipping cost
+        }
+    } else {
+        // No valid coupon selected or "Seçin" was chosen, so reset any potential previous selection
+        $selected_coupon_code = null;
+        $item_level_discount_amount = 0;
+        $current_shipping_cost = $shipping_cost_default; // Reset to default shipping
+        $coupon_description_for_display = "";
+    }
+}
+
+// --- Calculate final totals ---
+$sub_total_after_item_discount = $sub_total_summary - $item_level_discount_amount;
+$estimated_taxes = $sub_total_after_item_discount * 0.18; // Tax is calculated on the subtotal *after* item discounts
+$grand_total_summary = $sub_total_after_item_discount + $current_shipping_cost + $estimated_taxes;
+// --- END DISCOUNT CODE LOGIC & FINAL TOTALS ---
+
 
 $error_message_odeme = null;
 if(isset($_GET['error_msg_odeme'])) {
@@ -114,6 +161,7 @@ if(isset($_GET['error_msg_odeme'])) {
             --input-focus-border-color: var(--asikzade-green);
             --button-primary-bg: var(--asikzade-green);
             --button-primary-text: var(--asikzade-light-text);
+            --discount-color: #e53e3e; /* For discount text if needed */
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; }
         body { background-color: #fff; color: var(--asikzade-dark-text); line-height: 1.6; display: flex; flex-direction: column; min-height: 100vh; }
@@ -143,8 +191,11 @@ if(isset($_GET['error_msg_odeme'])) {
         .submit-button-container { margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--asikzade-border); text-align: right; } .submit-button-container .pay-now-btn { background-color: #ef4444; color: white; padding: 15px 35px; border: none; border-radius: 5px; font-size: 1.1rem; font-weight: 500; cursor: pointer; transition: background-color 0.3s; } .submit-button-container .pay-now-btn:hover { background-color: #dc2626; }
         .secure-info { font-size: 0.85rem; color: var(--asikzade-gray); margin-top: 10px; text-align: center; } .secure-info svg { vertical-align: middle; margin-right: 5px; }
         .order-summary-item { display: flex; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--asikzade-border); } .order-summary-item:last-child { border-bottom: none; margin-bottom: 0; } .order-summary-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 15px; border: 1px solid var(--asikzade-border); } .item-details { flex-grow: 1; } .item-name { font-weight: 500; font-size: 0.95rem;} .item-quantity { font-size: 0.85rem; color: var(--asikzade-gray); } .item-price-summary { font-weight: 500; }
-        .discount-code-form { display: flex; margin-bottom: 20px; margin-top: 20px; } .discount-code-form input[type="text"] { flex-grow: 1; padding: 10px 12px; border: 1px solid var(--input-border-color); border-radius: 5px 0 0 5px; font-size: 0.95rem; } .discount-code-form button { padding: 10px 18px; border: 1px solid var(--asikzade-green); background-color: var(--asikzade-green); color: var(--button-primary-text); border-radius: 0 5px 5px 0; cursor: pointer; font-weight: 500; }
+        .discount-code-form { display: flex; margin-bottom: 20px; margin-top: 20px; } 
+        .discount-code-form select { flex-grow: 1; padding: 10px 12px; border: 1px solid var(--input-border-color); border-radius: 5px 0 0 5px; font-size: 0.95rem; -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%237a7a7a' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px; }
+        .discount-code-form button { padding: 10px 18px; border: 1px solid var(--asikzade-green); background-color: var(--asikzade-green); color: var(--button-primary-text); border-radius: 0 5px 5px 0; cursor: pointer; font-weight: 500; white-space: nowrap; }
         .totals-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; } .totals-row.grand-total { font-size: 1.25rem; font-weight: bold; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--asikzade-dark-text); } .totals-row .label { color: var(--asikzade-gray); } .totals-row .value { font-weight: 500; }
+        .totals-row.discount-applied-row .label, .totals-row.discount-applied-row .value { color: var(--asikzade-green); }
         .info-icon { margin-left: 5px; color: var(--asikzade-gray); cursor: help; }
         .message-box-odeme { padding: 10px 15px; margin-bottom: 20px; border: 1px solid transparent; border-radius: 4px; font-size: 0.9rem; background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
         .footer { background-color: var(--asikzade-content-bg); padding: 40px 0 20px; color: var(--asikzade-dark-text); margin-top: auto; border-top: 1px solid var(--asikzade-border); }
@@ -157,7 +208,7 @@ if(isset($_GET['error_msg_odeme'])) {
     <header class="header">
         <div class="logo-container">
             <a href="index.php"><img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo"></a>
-            <a href="index.php" class="logo-text"></a>
+            <a href="index.php" class="logo-text">AŞIKZADE</a>
         </div>
         <nav class="main-nav">
             <div class="user-actions-group">
@@ -182,6 +233,15 @@ if(isset($_GET['error_msg_odeme'])) {
 
             <form action="odeme_process.php" method="POST" id="payment-form">
                 <input type="hidden" name="user_id_field" value="<?php echo htmlspecialchars($user_id_field_value); ?>">
+                <?php if ($selected_coupon_code): ?>
+                    <input type="hidden" name="applied_coupon_code" value="<?php echo htmlspecialchars($selected_coupon_code); ?>">
+                    <input type="hidden" name="item_level_discount_amount" value="<?php echo htmlspecialchars($item_level_discount_amount); ?>">
+                    <input type="hidden" name="final_shipping_cost" value="<?php echo htmlspecialchars($current_shipping_cost); ?>">
+                    <input type="hidden" name="final_sub_total_after_discount" value="<?php echo htmlspecialchars($sub_total_after_item_discount); ?>">
+                    <input type="hidden" name="final_taxes" value="<?php echo htmlspecialchars($estimated_taxes); ?>">
+                    <input type="hidden" name="final_grand_total" value="<?php echo htmlspecialchars($grand_total_summary); ?>">
+                <?php endif; ?>
+
 
                 <div class="contact-info section-block">
                     <h2 class="section-title">İletişim</h2>
@@ -286,10 +346,9 @@ if(isset($_GET['error_msg_odeme'])) {
             </form>
         </section>
 
-        <aside class="checkout-summary-section">
+        <aside class="checkout-summary-section" id="order-summary">
             <h2 class="section-title">Sipariş Özeti</h2>
-            <?php if (!empty($cart_contents_summary)):
-            ?>
+            <?php if (!empty($cart_contents_summary)): ?>
                 <?php foreach ($cart_contents_summary as $item_id => $item): ?>
                 <div class="order-summary-item">
                     <img src="<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>">
@@ -301,9 +360,21 @@ if(isset($_GET['error_msg_odeme'])) {
                 </div>
                 <?php endforeach; ?>
 
-                <form action="#" method="post" class="discount-code-form">
-                    <input type="text" name="discount_code" placeholder="Hediye kartı veya indirim kodu">
-                    <button type="submit">Uygula</button>
+                <form action="odeme.php#order-summary" method="POST" class="discount-code-form" id="discount-apply-form">
+                    <select name="discount_code_select" id="discount_code_select">
+                        <option value="">İndirim Kodu Seçin...</option>
+                        <?php foreach ($discount_codes_available as $code => $details): ?>
+                            <option value="<?php echo htmlspecialchars($code); ?>" <?php if ($selected_coupon_code == $code) echo 'selected'; ?>>
+                                <?php echo htmlspecialchars($details['description']); ?>
+                                (<?php
+                                    if ($details['type'] == 'percentage') echo $details['value'] . '%';
+                                    elseif ($details['type'] == 'fixed') echo number_format($details['value'], 0, '', '') . ' TL';
+                                    elseif ($details['type'] == 'free_shipping') echo 'Ücretsiz Kargo';
+                                ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <button type="submit" name="discount_code_select_submit">Uygula</button>
                 </form>
 
                 <div class="totals-breakdown">
@@ -311,12 +382,26 @@ if(isset($_GET['error_msg_odeme'])) {
                         <span class="label">Ara Toplam</span>
                         <span class="value"><?php echo number_format($sub_total_summary, 2, ',', '.'); ?> TL</span>
                     </div>
+
+                    <?php if ($selected_coupon_code && $item_level_discount_amount > 0 && $discount_codes_available[$selected_coupon_code]['type'] != 'free_shipping'): ?>
+                    <div class="totals-row discount-applied-row">
+                        <span class="label">İndirim (<?php echo htmlspecialchars($coupon_description_for_display); ?>)</span>
+                        <span class="value">- <?php echo number_format($item_level_discount_amount, 2, ',', '.'); ?> TL</span>
+                    </div>
+                    <?php endif; ?>
+                    
                     <div class="totals-row">
                         <span class="label">Kargo</span>
-                        <span class="value"><?php echo number_format($shipping_cost, 2, ',', '.'); ?> TL</span>
+                        <span class="value"><?php echo ($current_shipping_cost == 0 && $shipping_cost_default > 0) ? 'Ücretsiz' : number_format($current_shipping_cost, 2, ',', '.').' TL'; ?></span>
                     </div>
+                    <?php if ($selected_coupon_code && isset($discount_codes_available[$selected_coupon_code]) && $discount_codes_available[$selected_coupon_code]['type'] == 'free_shipping' && $shipping_cost_default > 0): ?>
+                    <div class="totals-row discount-applied-row" style="font-size: 0.85rem;">
+                        <span class="label" colspan="2" style="width:100%; text-align:left;">(<?php echo htmlspecialchars($coupon_description_for_display); ?> uygulandı)</span>
+                    </div>
+                    <?php endif; ?>
+
                     <div class="totals-row">
-                        <span class="label">Tahmini Vergiler <svg class="info-icon" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" stroke="currentColor" stroke-opacity=".56" fill="none"></circle><path d="M7.86 4.3a.6.6 0 01.6.6v.08a.6.6 0 01-.6.6.6.6 0 01-.6-.6V4.9a.6.6 0 01.6-.6zm-.33 2.95c0-.1.03-.18.08-.25a.54.54 0 01.42-.1c.17 0 .3.03.4.1.1.06.15.14.15.25v3.12c0 .1-.03-.18-.08-.25a.54.54 0 01-.42.1c-.17 0-.3-.03-.4-.1a.36.36 0 01-.15-.25V7.25z" fill="currentColor"></path></svg></span>
+                        <span class="label">Tahmini Vergiler (%18) <svg class="info-icon" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" stroke="currentColor" stroke-opacity=".56" fill="none"></circle><path d="M7.86 4.3a.6.6 0 01.6.6v.08a.6.6 0 01-.6.6.6.6 0 01-.6-.6V4.9a.6.6 0 01.6-.6zm-.33 2.95c0-.1.03-.18.08-.25a.54.54 0 01.42-.1c.17 0 .3.03.4.1.1.06.15.14.15.25v3.12c0 .1-.03-.18-.08-.25a.54.54 0 01-.42.1c-.17 0-.3-.03-.4-.1a.36.36 0 01-.15-.25V7.25z" fill="currentColor"></path></svg></span>
                         <span class="value"><?php echo number_format($estimated_taxes, 2, ',', '.'); ?> TL</span>
                     </div>
                     <div class="totals-row grand-total">
@@ -335,9 +420,5 @@ if(isset($_GET['error_msg_odeme'])) {
             <p>© <?php echo date("Y"); ?> Aşıkzade. Tüm hakları saklıdır.</p>
         </div>
     </footer>
-    <script>
-        // Ödeme yöntemi radyo butonları kaldırıldığı için JS'e gerek kalmadı.
-        // Kredi kartı formu her zaman görünür olacak.
-    </script>
 </body>
 </html>
