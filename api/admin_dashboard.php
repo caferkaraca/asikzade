@@ -405,6 +405,9 @@ document.addEventListener('DOMContentLoaded', function () {
             modalContentDiv.innerHTML = `<p style="text-align:center; padding:20px;">Sipariş #${orderId.substring(0,8)}... detayları yükleniyor...</p>`;
             
             const productsData = <?php echo isset($products) && is_array($products) ? json_encode($products) : '{}'; ?>;
+            // --- YENİ TEST KODU BAŞLANGIÇ ---
+console.log("JAVASCRIPT productsData DEĞİŞKENİNİN İÇERİĞİ:", productsData);
+// --- YENİ TEST KODU SONU ---
 
             fetch(`get_order_details.php?order_id=${orderId}&admin_view=true`)
                 .then(response => {
