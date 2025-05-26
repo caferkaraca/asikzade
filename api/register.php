@@ -16,6 +16,7 @@ unset($_SESSION['error_message'], $_SESSION['success_message']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kayıt Ol - AŞIKZADE</title>
+    <link rel="stylesheet" href="gecis_animasyonlari.css">
     <style>
         /* Önceki cevaptaki tüm CSS stilleri buraya gelecek */
         /* ... (Stilleri buraya kopyalayın) ... */
@@ -140,6 +141,8 @@ unset($_SESSION['error_message'], $_SESSION['success_message']);
     </style>
 </head>
 <body>
+     <div id="sayfa-gecis-katmani"></div>
+      <div id="sayfa-kapanis-katmani"></div>
     <header class="header" id="mainHeader">
         <div class="logo-container">
             <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo" id="headerLogoImage">
@@ -255,6 +258,60 @@ unset($_SESSION['error_message'], $_SESSION['success_message']);
                 }
             });
         }
+        document.addEventListener('DOMContentLoaded', () => {
+    const kapanisKatmani = document.getElementById('sayfa-kapanis-katmani');
+    const kapanisAnimasyonSuresi = 600; // CSS'teki animation-duration ile aynı olmalı (ms cinsinden)
+
+    // Sadece aynı domaindeki ve yeni sekmede açılmayan linkleri yakala
+    document.querySelectorAll('a[href]').forEach(link => {
+        // Harici linkler, # ile başlayan anchor linkler veya _blank hedefleri hariç
+        if (link.hostname === window.location.hostname &&
+            !link.href.startsWith(window.location.origin + window.location.pathname + '#') && // Sayfa içi anchor değilse
+            link.target !== '_blank' &&
+            !link.href.startsWith('mailto:') &&
+            !link.href.startsWith('tel:')) {
+
+            link.addEventListener('click', function(event) {
+                event.preventDefault(); // Varsayılan link davranışını engelle
+                const hedefUrl = this.href;
+
+                // Kapanış animasyonunu başlat
+                kapanisKatmani.classList.add('aktif');
+
+                // Animasyon bittikten sonra sayfayı yönlendir
+                setTimeout(() => {
+                    window.location.href = hedefUrl;
+                }, kapanisAnimasyonSuresi);
+            });
+        }
+    });
+
+    // Tarayıcının geri/ileri butonları için (bfcache - back/forward cache)
+    // Eğer sayfa bfcache'den yükleniyorsa, açılış animasyonunu tekrar oynatmayabilir.
+    // Bu durumda katmanı manuel olarak gizleyebiliriz.
+    // Bu kısım daha karmaşık senaryolar için ve her zaman %100 çalışmayabilir.
+    window.addEventListener('pageshow', function(event) {
+        const acilisKatmani = document.getElementById('sayfa-acilis-katmani');
+        if (event.persisted) { // Sayfa bfcache'den yüklendiyse
+            // Açılış katmanının animasyonu zaten oynamış olabilir,
+            // bu yüzden manuel olarak gizleyebiliriz veya body'yi direkt görünür yapabiliriz.
+            if (acilisKatmani) {
+                acilisKatmani.style.opacity = '0';
+                acilisKatmani.style.visibility = 'hidden';
+                acilisKatmani.style.pointerEvents = 'none';
+            }
+            document.body.style.opacity = '1'; // Body'yi hemen göster
+            // Gerekirse kapanış katmanını da sıfırla
+            if (kapanisKatmani && kapanisKatmani.classList.contains('aktif')) {
+                kapanisKatmani.classList.remove('aktif');
+                // Stilini CSS'teki başlangıç durumuna getirebiliriz.
+                kapanisKatmani.style.clipPath = 'circle(0% at 50% 50%)';
+                kapanisKatmani.style.opacity = '0';
+                kapanisKatmani.style.visibility = 'hidden';
+            }
+        }
+    });
+});
     </script>
 </body>
 </html>

@@ -161,6 +161,7 @@ foreach($status_order as $status_key) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Paneli - Sipariş Yönetimi</title>
+    <link rel="stylesheet" href="gecis_animasyonlari.css">
     <style>
         /* Kullanıcının verdiği CSS stilleri buraya gelecek (bir önceki yanıtta vardı) */
         :root { --asikzade-content-bg: #fef6e6; --asikzade-green: #8ba86d; --asikzade-dark-green: #6a8252; --asikzade-dark-text: #2d3e2a; --asikzade-light-text: #fdfcf8; --asikzade-gray: #7a7a7a; --asikzade-border: #e5e5e5; --asikzade-red: #c0392b; --admin-header-height: 70px; }
@@ -187,6 +188,8 @@ foreach($status_order as $status_key) {
     </style>
 </head>
 <body>
+     <div id="sayfa-gecis-katmani"></div>
+      <div id="sayfa-kapanis-katmani"></div>
     <header class="header">
         <a href="index.php" class="logo-container">
             <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo">
@@ -497,6 +500,60 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.error('Admin Sipariş detayları çekilirken hata:', error);
                 });
         });
+    });
+});
+document.addEventListener('DOMContentLoaded', () => {
+    const kapanisKatmani = document.getElementById('sayfa-kapanis-katmani');
+    const kapanisAnimasyonSuresi = 600; // CSS'teki animation-duration ile aynı olmalı (ms cinsinden)
+
+    // Sadece aynı domaindeki ve yeni sekmede açılmayan linkleri yakala
+    document.querySelectorAll('a[href]').forEach(link => {
+        // Harici linkler, # ile başlayan anchor linkler veya _blank hedefleri hariç
+        if (link.hostname === window.location.hostname &&
+            !link.href.startsWith(window.location.origin + window.location.pathname + '#') && // Sayfa içi anchor değilse
+            link.target !== '_blank' &&
+            !link.href.startsWith('mailto:') &&
+            !link.href.startsWith('tel:')) {
+
+            link.addEventListener('click', function(event) {
+                event.preventDefault(); // Varsayılan link davranışını engelle
+                const hedefUrl = this.href;
+
+                // Kapanış animasyonunu başlat
+                kapanisKatmani.classList.add('aktif');
+
+                // Animasyon bittikten sonra sayfayı yönlendir
+                setTimeout(() => {
+                    window.location.href = hedefUrl;
+                }, kapanisAnimasyonSuresi);
+            });
+        }
+    });
+
+    // Tarayıcının geri/ileri butonları için (bfcache - back/forward cache)
+    // Eğer sayfa bfcache'den yükleniyorsa, açılış animasyonunu tekrar oynatmayabilir.
+    // Bu durumda katmanı manuel olarak gizleyebiliriz.
+    // Bu kısım daha karmaşık senaryolar için ve her zaman %100 çalışmayabilir.
+    window.addEventListener('pageshow', function(event) {
+        const acilisKatmani = document.getElementById('sayfa-acilis-katmani');
+        if (event.persisted) { // Sayfa bfcache'den yüklendiyse
+            // Açılış katmanının animasyonu zaten oynamış olabilir,
+            // bu yüzden manuel olarak gizleyebiliriz veya body'yi direkt görünür yapabiliriz.
+            if (acilisKatmani) {
+                acilisKatmani.style.opacity = '0';
+                acilisKatmani.style.visibility = 'hidden';
+                acilisKatmani.style.pointerEvents = 'none';
+            }
+            document.body.style.opacity = '1'; // Body'yi hemen göster
+            // Gerekirse kapanış katmanını da sıfırla
+            if (kapanisKatmani && kapanisKatmani.classList.contains('aktif')) {
+                kapanisKatmani.classList.remove('aktif');
+                // Stilini CSS'teki başlangıç durumuna getirebiliriz.
+                kapanisKatmani.style.clipPath = 'circle(0% at 50% 50%)';
+                kapanisKatmani.style.opacity = '0';
+                kapanisKatmani.style.visibility = 'hidden';
+            }
+        }
     });
 });
 </script>
