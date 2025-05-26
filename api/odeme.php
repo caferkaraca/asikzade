@@ -147,8 +147,9 @@ if(isset($_GET['error_msg_odeme'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ödeme - AŞIKZADE</title>
- <link rel="stylesheet" href="/gecis_animasyonlari.css">
+    <!-- Kaldırıldı: <link rel="stylesheet" href="/gecis_animasyonlari.css"> -->
     <style>
+        /* === GENEL AYARLAR (Sizin Mevcut Değişkenleriniz ve Global Stilleriniz) === */
         :root {
             --asikzade-content-bg: #fef6e6;
             --asikzade-green: #8ba86d;
@@ -165,7 +166,94 @@ if(isset($_GET['error_msg_odeme'])) {
             --discount-color: #e53e3e; /* For discount text if needed */
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; }
-        body { background-color: #fff; color: var(--asikzade-dark-text); line-height: 1.6; display: flex; flex-direction: column; min-height: 100vh; }
+        
+        /* === BODY STİLLERİ VE SAYFA AÇILIŞ ANİMASYONU İÇİN EKLENENLER === */
+        /* Bu kısım, mevcut body stilinizle birleştirilmiştir */
+        body { 
+            opacity: 0; /* Sayfa yüklenirken başlangıçta gizli */
+            animation: sayfaIceriginiGoster 0.5s ease-out 0.6s forwards; /* Açılış animasyonundan sonra body'yi göster */
+            margin: 0; /* Tarayıcı varsayılan margin'lerini sıfırla */
+
+            background-color: #fff; 
+            color: var(--asikzade-dark-text); 
+            line-height: 1.6; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh; 
+        }
+
+        /* === SAYFA AÇILIŞ ANİMASYONU İÇİN KATMAN === */
+        #sayfa-acilis-katmani {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--asikzade-content-bg, #fef6e6); /* Geçiş rengi */
+            z-index: 9999;
+            clip-path: circle(150% at 50% 50%); /* Başlangıçta dolu */
+            animation: daireIleSayfaAc 0.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+        }
+
+        @keyframes daireIleSayfaAc { /* Sayfa açılırken daire küçülür */
+            0% {
+                clip-path: circle(150% at 50% 50%);
+                opacity: 1;
+            }
+            99% {
+                clip-path: circle(0% at 50% 50%);
+                opacity: 1;
+            }
+            100% {
+                clip-path: circle(0% at 50% 50%);
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none; /* Önemli: Tıklamaları engellememesi için */
+            }
+        }
+
+        @keyframes sayfaIceriginiGoster { /* Body içeriğini gösterir */
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* === SAYFA KAPANIŞ ANİMASYONU İÇİN KATMAN (YENİ) === */
+        #sayfa-kapanis-katmani {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--asikzade-content-bg, #fef6e6); /* AÇILIŞ İLE AYNI RENK OLMALI! */
+            z-index: 10000; /* Açılış katmanından da üstte olmalı ki onu kapatsın */
+            clip-path: circle(0% at 50% 50%); /* Başlangıçta görünmez/küçük */
+            opacity: 0; /* Başlangıçta tamamen saydam */
+            visibility: hidden; /* Başlangıçta gizli */
+            pointer-events: none; /* Tıklamaları engellemesin */
+        }
+
+        /* Kapanış animasyonunu tetikleyecek class */
+        #sayfa-kapanis-katmani.aktif {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto; /* Animasyon sırasında tıklamaları yakalasın */
+            animation: daireIleSayfaKapat 0.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+            /* Süreyi isteğinize göre ayarlayın */
+        }
+
+        @keyframes daireIleSayfaKapat { /* Sayfa kapanırken daire büyür */
+            0% {
+                clip-path: circle(0% at 50% 50%);
+                opacity: 1; /* Animasyon başladığında görünür olmalı */
+            }
+            100% {
+                clip-path: circle(150% at 50% 50%);
+                opacity: 1;
+            }
+        }
+
+        /* === MEVCUT DİĞER CSS STİLLERİNİZ (Değiştirilmedi) === */
         .header { top: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 15px 50px; z-index: 1000; background: rgba(254, 246, 230, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 1px 0 rgba(0,0,0,0.05); }
         .logo-container { display: flex; align-items: center; gap: 10px; }
         .logo-container img { height: 48px; }
@@ -220,8 +308,9 @@ if(isset($_GET['error_msg_odeme'])) {
     </style>
 </head>
 <body>
-     <div id="sayfa-gecis-katmani"></div>
-      <div id="sayfa-kapanis-katmani"></div>
+    <!-- Buradaki ID düzeltildi: "sayfa-gecis-katmani" yerine "sayfa-acilis-katmani" -->
+    <div id="sayfa-acilis-katmani"></div>
+    <div id="sayfa-kapanis-katmani"></div>
     <header class="header">
         <div class="logo-container">
             <a href="index.php"><img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo"></a>
@@ -437,7 +526,8 @@ if(isset($_GET['error_msg_odeme'])) {
             <p>© <?php echo date("Y"); ?> Aşıkzade. Tüm hakları saklıdır.</p>
         </div>
     </footer>
-<script> document.addEventListener('DOMContentLoaded', () => {
+<script> 
+document.addEventListener('DOMContentLoaded', () => {
     const kapanisKatmani = document.getElementById('sayfa-kapanis-katmani');
     const kapanisAnimasyonSuresi = 600; // CSS'teki animation-duration ile aynı olmalı (ms cinsinden)
 
@@ -470,6 +560,7 @@ if(isset($_GET['error_msg_odeme'])) {
     // Bu durumda katmanı manuel olarak gizleyebiliriz.
     // Bu kısım daha karmaşık senaryolar için ve her zaman %100 çalışmayabilir.
     window.addEventListener('pageshow', function(event) {
+        // Buradaki ID düzeltildi: "sayfa-gecis-katmani" yerine "sayfa-acilis-katmani"
         const acilisKatmani = document.getElementById('sayfa-acilis-katmani');
         if (event.persisted) { // Sayfa bfcache'den yüklendiyse
             // Açılış katmanının animasyonu zaten oynamış olabilir,
@@ -490,6 +581,7 @@ if(isset($_GET['error_msg_odeme'])) {
             }
         }
     });
-});  </script>
+});  
+</script>
 </body>
 </html>

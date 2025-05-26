@@ -9,8 +9,9 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AŞIKZADE - Doğal Lezzetler</title>
-   <link rel="stylesheet" href="/gecis_animasyonlari.css">
+   <!-- Kaldırıldı: <link rel="stylesheet" href="/gecis_animasyonlari.css"> -->
     <style>
+        /* === GENEL AYARLAR (Sizin Mevcut Değişkenleriniz ve Global Stilleriniz) === */
         :root {
             --product-bg-text-light: rgba(255, 255, 255, 0.18);
             --product-bg-text-dark: rgba(0, 0, 0, 0.15);
@@ -32,7 +33,13 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        /* === BODY STİLLERİ VE SAYFA AÇILIŞ ANİMASYONU İÇİN EKLENENLER === */
+        /* Bu kısım, mevcut body stilinizle birleştirilmiştir */
         body {
+            opacity: 0; /* Sayfa yüklenirken başlangıçta gizli */
+            animation: sayfaIceriginiGoster 0.5s ease-out 0.6s forwards; /* Açılış animasyonundan sonra body'yi göster */
+            margin: 0; /* Tarayıcı varsayılan margin'lerini sıfırla */
+
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
             overflow-x: hidden;
             position: relative;
@@ -42,6 +49,78 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
             background-color: var(--asikzade-content-bg);
         }
 
+        /* === SAYFA AÇILIŞ ANİMASYONU İÇİN KATMAN === */
+        #sayfa-acilis-katmani {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--asikzade-content-bg, #fef6e6); /* Geçiş rengi */
+            z-index: 9999;
+            clip-path: circle(150% at 50% 50%); /* Başlangıçta dolu */
+            animation: daireIleSayfaAc 0.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+        }
+
+        @keyframes daireIleSayfaAc { /* Sayfa açılırken daire küçülür */
+            0% {
+                clip-path: circle(150% at 50% 50%);
+                opacity: 1;
+            }
+            99% {
+                clip-path: circle(0% at 50% 50%);
+                opacity: 1;
+            }
+            100% {
+                clip-path: circle(0% at 50% 50%);
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none; /* Önemli: Tıklamaları engellememesi için */
+            }
+        }
+
+        @keyframes sayfaIceriginiGoster { /* Body içeriğini gösterir */
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* === SAYFA KAPANIŞ ANİMASYONU İÇİN KATMAN (YENİ) === */
+        #sayfa-kapanis-katmani {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--asikzade-content-bg, #fef6e6); /* AÇILIŞ İLE AYNI RENK OLMALI! */
+            z-index: 10000; /* Açılış katmanından da üstte olmalı ki onu kapatsın */
+            clip-path: circle(0% at 50% 50%); /* Başlangıçta görünmez/küçük */
+            opacity: 0; /* Başlangıçta tamamen saydam */
+            visibility: hidden; /* Başlangıçta gizli */
+            pointer-events: none; /* Tıklamaları engellemesin */
+        }
+
+        /* Kapanış animasyonunu tetikleyecek class */
+        #sayfa-kapanis-katmani.aktif {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto; /* Animasyon sırasında tıklamaları yakalasın */
+            animation: daireIleSayfaKapat 0.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+            /* Süreyi isteğinize göre ayarlayın */
+        }
+
+        @keyframes daireIleSayfaKapat { /* Sayfa kapanırken daire büyür */
+            0% {
+                clip-path: circle(0% at 50% 50%);
+                opacity: 1; /* Animasyon başladığında görünür olmalı */
+            }
+            100% {
+                clip-path: circle(150% at 50% 50%);
+                opacity: 1;
+            }
+        }
+
+        /* === MEVCUT DİĞER CSS STİLLERİNİZ (Değiştirilmedi) === */
         /* Dynamic background classes for Hero */
         .bg-product1-custom { background: #c24f3e; }
         .bg-product2-custom { background: #f4eddb; }
@@ -328,7 +407,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
             .about-section-layout { grid-template-columns: 1fr; gap: 50px; } .about-image img { height: 300px; } .wave-transition { height: 80px; bottom: -30px; }
             .benefits-grid { grid-template-columns: 1fr; } .asikzade-content-wrapper { padding-top: 40px; } .full-screen-image-section { height: 40vh; }
             .section { padding: 80px 0; padding-left: 20px; padding-right: 20px; }
-            .insta-promo-section { padding-top: clamp(40px, 8vw, 80px); padding-bottom: clamp(40px, 8vw, 80px); } .promo-image { width: clamp(70px, 20vw, 110px); } .promo-image-1 { top: clamp(10px, 3%, 25px); left: clamp(10px, 1.5%, 20px); transform: rotate(-10deg); } .promo-image-2 { top: clamp(15px, 4%, 35px); right: clamp(10px, 1.5%, 20px); transform: rotate(8deg); } .promo-image-3 { display: none;  } .promo-image-4 { bottom: clamp(15px, 4%, 35px); right: clamp(10px, 1.5%, 20px); transform: rotate(-12deg); } .insta-promo-title { font-size: clamp(1.5rem, 6vw, 2.5rem); }
+            .insta-promo-section { padding-top: clamp(40px, 8vw, 80px); padding-bottom: clamp(40px, 8vw, 80px); } .promo-image { width: clamp(90px, 14vw, 160px); } .promo-image-1 { top: clamp(10px, 3%, 25px); left: clamp(10px, 1.5%, 20px); transform: rotate(-10deg); } .promo-image-2 { top: clamp(15px, 4%, 35px); right: clamp(10px, 1.5%, 20px); transform: rotate(8deg); } .promo-image-3 { display: none;  } .promo-image-4 { bottom: clamp(15px, 4%, 35px); right: clamp(10px, 1.5%, 20px); transform: rotate(-12deg); } .insta-promo-title { font-size: clamp(1.5rem, 6vw, 2.5rem); }
             #asikzade-contact { padding: 60px 0; } .contact-title { font-size: clamp(2rem, 10vw, 3.5rem); margin-bottom: 40px; } .contact-layout { grid-template-columns: 1fr; gap: 20px; } .contact-brand-aside { text-align: center; padding-right: 0; font-size: clamp(1rem, 2vw, 1.5rem); } .contact-form input[type="text"], .contact-form input[type="email"], .contact-form input[type="tel"], .contact-form textarea { padding: 16px 20px; font-size: 0.95rem; } .contact-form button { padding: 16px 25px; font-size: 1rem; align-self: center;}
             .footer-content { padding: 0 20px; } .footer-bottom { flex-direction: column; gap: 15px; text-align: center; padding-top: 20px; } .footer-links ul { justify-content: center; flex-wrap: wrap; gap: 10px 20px; } .copyright { text-align: center; } .footer-social-row { margin-bottom: 30px; } .social-icons a { width: 44px; height: 44px; } .social-icons svg { width: 20px; height: 20px; } .footer { padding: 40px 0 20px; }
             /* Homepage product details list mobile */
@@ -353,7 +432,8 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
     </style>
 </head>
 <body>
-     <div id="sayfa-gecis-katmani"></div>
+     <!-- Buradaki ID düzeltildi: "sayfa-gecis-katmani" yerine "sayfa-acilis-katmani" -->
+     <div id="sayfa-acilis-katmani"></div>
       <div id="sayfa-kapanis-katmani"></div>
     <header class="header" id="mainHeader">
         <div class="logo-container">
@@ -368,7 +448,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
             </div>
             <div class="user-actions-group">
                 <a href="login.php" class="nav-user-icon" aria-label="Kullanıcı Girişi"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></a>
-                <a href="sepet.php" class="nav-cart-icon" aria-label="Sepetim"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                <a href="sepet.php" class="nav-cart-icon" aria-label="Sepetim"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 0 0 0 2 1.61h9.72a2 0 0 0 2-1.61L23 6H6"></path></svg>
                     <?php if ($cart_item_count > 0): ?><span class="cart-badge"><?php echo $cart_item_count; ?></span><?php endif; ?>
                 </a>
             </div>
@@ -733,7 +813,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
         const fadeInObserver = new IntersectionObserver((entries) => { entries.forEach(entry => { if (entry.isIntersecting) { entry.target.style.opacity = '1'; if(entry.target.style.transform.includes('translateY')) entry.target.style.transform = 'translateY(0)'; fadeInObserver.unobserve(entry.target); } }); }, observerOptions);
         document.addEventListener('DOMContentLoaded', () => {
-             handleScroll();
+             // handleScroll(); // This function is not defined in the provided code, removing or defining it is required.
              if (waveToContentPath) waveToContentPath.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--asikzade-content-bg').trim());
              if (waveToInstaPromoPath) waveToInstaPromoPath.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--asikzade-promo-bg').trim());
              updateHeaderStyles();
@@ -762,61 +842,63 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         function requestTick() { if (!ticking) { window.requestAnimationFrame(updateParallax); ticking = true; } }
         window.addEventListener('scroll', requestTick, { passive: true });
         document.addEventListener('DOMContentLoaded', () => { const images = document.querySelectorAll('img:not(.product-image-mawa):not(.full-screen-image-section img)'); images.forEach(img => img.loading = 'lazy'); if (productImageMawa && productNameMawa && productNameBackgroundMawa) { /* Initial setup if needed */ } });
-        document.body.style.opacity = '0'; document.body.style.transition = 'opacity 0.5s ease';
+        // document.body.style.opacity = '0'; // Bu satır sayfa açılış animasyonu CSS'i ile çakışabilir, kaldırıldı.
+        // document.body.style.transition = 'opacity 0.5s ease'; // Bu satır sayfa açılış animasyonu CSS'i ile çakışabilir, kaldırıldı.
+
         document.addEventListener('DOMContentLoaded', () => {
-    const kapanisKatmani = document.getElementById('sayfa-kapanis-katmani');
-    const kapanisAnimasyonSuresi = 600; // CSS'teki animation-duration ile aynı olmalı (ms cinsinden)
+            const kapanisKatmani = document.getElementById('sayfa-kapanis-katmani');
+            const kapanisAnimasyonSuresi = 600; // CSS'teki animation-duration ile aynı olmalı (ms cinsinden)
 
-    // Sadece aynı domaindeki ve yeni sekmede açılmayan linkleri yakala
-    document.querySelectorAll('a[href]').forEach(link => {
-        // Harici linkler, # ile başlayan anchor linkler veya _blank hedefleri hariç
-        if (link.hostname === window.location.hostname &&
-            !link.href.startsWith(window.location.origin + window.location.pathname + '#') && // Sayfa içi anchor değilse
-            link.target !== '_blank' &&
-            !link.href.startsWith('mailto:') &&
-            !link.href.startsWith('tel:')) {
+            // Sadece aynı domaindeki ve yeni sekmede açılmayan linkleri yakala
+            document.querySelectorAll('a[href]').forEach(link => {
+                // Harici linkler, # ile başlayan anchor linkler veya _blank hedefleri hariç
+                if (link.hostname === window.location.hostname &&
+                    !link.href.startsWith(window.location.origin + window.location.pathname + '#') && // Sayfa içi anchor değilse
+                    link.target !== '_blank' &&
+                    !link.href.startsWith('mailto:') &&
+                    !link.href.startsWith('tel:')) {
 
-            link.addEventListener('click', function(event) {
-                event.preventDefault(); // Varsayılan link davranışını engelle
-                const hedefUrl = this.href;
+                    link.addEventListener('click', function(event) {
+                        event.preventDefault(); // Varsayılan link davranışını engelle
+                        const hedefUrl = this.href;
 
-                // Kapanış animasyonunu başlat
-                kapanisKatmani.classList.add('aktif');
+                        // Kapanış animasyonunu başlat
+                        kapanisKatmani.classList.add('aktif');
 
-                // Animasyon bittikten sonra sayfayı yönlendir
-                setTimeout(() => {
-                    window.location.href = hedefUrl;
-                }, kapanisAnimasyonSuresi);
+                        // Animasyon bittikten sonra sayfayı yönlendir
+                        setTimeout(() => {
+                            window.location.href = hedefUrl;
+                        }, kapanisAnimasyonSuresi);
+                    });
+                }
             });
-        }
-    });
 
-    // Tarayıcının geri/ileri butonları için (bfcache - back/forward cache)
-    // Eğer sayfa bfcache'den yükleniyorsa, açılış animasyonunu tekrar oynatmayabilir.
-    // Bu durumda katmanı manuel olarak gizleyebiliriz.
-    // Bu kısım daha karmaşık senaryolar için ve her zaman %100 çalışmayabilir.
-    window.addEventListener('pageshow', function(event) {
-        const acilisKatmani = document.getElementById('sayfa-acilis-katmani');
-        if (event.persisted) { // Sayfa bfcache'den yüklendiyse
-            // Açılış katmanının animasyonu zaten oynamış olabilir,
-            // bu yüzden manuel olarak gizleyebiliriz veya body'yi direkt görünür yapabiliriz.
-            if (acilisKatmani) {
-                acilisKatmani.style.opacity = '0';
-                acilisKatmani.style.visibility = 'hidden';
-                acilisKatmani.style.pointerEvents = 'none';
-            }
-            document.body.style.opacity = '1'; // Body'yi hemen göster
-            // Gerekirse kapanış katmanını da sıfırla
-            if (kapanisKatmani && kapanisKatmani.classList.contains('aktif')) {
-                kapanisKatmani.classList.remove('aktif');
-                // Stilini CSS'teki başlangıç durumuna getirebiliriz.
-                kapanisKatmani.style.clipPath = 'circle(0% at 50% 50%)';
-                kapanisKatmani.style.opacity = '0';
-                kapanisKatmani.style.visibility = 'hidden';
-            }
-        }
-    });
-});
+            // Tarayıcının geri/ileri butonları için (bfcache - back/forward cache)
+            // Eğer sayfa bfcache'den yükleniyorsa, açılış animasyonunu tekrar oynatmayabilir.
+            // Bu durumda katmanı manuel olarak gizleyebiliriz.
+            // Bu kısım daha karmaşık senaryolar için ve her zaman %100 çalışmayabilir.
+            window.addEventListener('pageshow', function(event) {
+                const acilisKatmani = document.getElementById('sayfa-acilis-katmani');
+                if (event.persisted) { // Sayfa bfcache'den yüklendiyse
+                    // Açılış katmanının animasyonu zaten oynamış olabilir,
+                    // bu yüzden manuel olarak gizleyebiliriz veya body'yi direkt görünür yapabiliriz.
+                    if (acilisKatmani) {
+                        acilisKatmani.style.opacity = '0';
+                        acilisKatmani.style.visibility = 'hidden';
+                        acilisKatmani.style.pointerEvents = 'none';
+                    }
+                    document.body.style.opacity = '1'; // Body'yi hemen göster
+                    // Gerekirse kapanış katmanını da sıfırla
+                    if (kapanisKatmani && kapanisKatmani.classList.contains('aktif')) {
+                        kapanisKatmani.classList.remove('aktif');
+                        // Stilini CSS'teki başlangıç durumuna getirebiliriz.
+                        kapanisKatmani.style.clipPath = 'circle(0% at 50% 50%)';
+                        kapanisKatmani.style.opacity = '0';
+                        kapanisKatmani.style.visibility = 'hidden';
+                    }
+                }
+            });
+        });
     </script>
 </body>
 </html>
