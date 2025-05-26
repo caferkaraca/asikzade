@@ -5,6 +5,7 @@
     }
   },
   "routes": [
+    { "src": "/gecis_animasyonlari.css", "dest": "/api/gecis_animasyonlari.css" },
     { "src": "/admin_config.php", "dest": "/api/admin_config.php" },
     { "src": "/admin_dashboard.php", "dest": "/api/admin_dashboard.php" },
     { "src": "/admin_login_process.php", "dest": "/api/admin_login_process.php" },
