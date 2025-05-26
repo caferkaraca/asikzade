@@ -2,6 +2,42 @@
 session_start();
 include 'products_data.php'; // Ürün verilerini ve fonksiyonları dahil et
 $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
+
+// $mawaProductsJs dizisindeki ürünlerin ID'lerini ve
+// $products dizisindeki ürünlerin ID'lerini kontrol edin ve tutarlı olmalarını sağlayın.
+// Örneğin, products_data.php içinde şöyle bir yapı olabilir:
+/*
+$products = [
+    'urun-1-id' => [
+        'id' => 'urun-1-id', // Bu ID, product-detail-{id} için kullanılacak
+        'name' => 'Ürün 1 Adı',
+        'image' => 'path/to/image1.jpg',
+        'price' => 100,
+        'description' => 'Ürün 1 açıklaması.',
+        'badge_image' => true, // veya resim yolu
+        'show_in_hero' => true, // Hero'da gösterilecekse
+        'dynamicBgClass' => 'bg-product1-custom', // Hero için arka plan class'ı
+        'productNameBgTextType' => 'light' // Hero için metin rengi tipi
+    ],
+    // ... diğer ürünler
+];
+
+// $mawaProductsJs'i $products üzerinden oluşturmak daha iyi olabilir:
+$mawaProductsJs = [];
+if (isset($products) && is_array($products)) {
+    foreach ($products as $key => $prod) {
+        if (!empty($prod['show_in_hero'])) { // Hero'da gösterilecek ürünler için bir flag
+            $mawaProductsJs[] = [
+                'id' => $prod['id'], // Yönlendirme için ID
+                'name' => $prod['name'],
+                'image' => $prod['image'], // Veya hero için özel bir resim alanı
+                'dynamicBgClass' => $prod['dynamicBgClass'] ?? '',
+                'productNameBgTextType' => $prod['productNameBgTextType'] ?? 'light'
+            ];
+        }
+    }
+}
+*/
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -9,9 +45,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AŞIKZADE - Doğal Lezzetler</title>
-   <!-- Kaldırıldı: <link rel="stylesheet" href="/gecis_animasyonlari.css"> -->
     <style>
-        /* === GENEL AYARLAR (Sizin Mevcut Değişkenleriniz ve Global Stilleriniz) === */
         :root {
             --product-bg-text-light: rgba(255, 255, 255, 0.18);
             --product-bg-text-dark: rgba(0, 0, 0, 0.15);
@@ -30,16 +64,11 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
             --asikzade-nav-button-text: #333333;
             --asikzade-nav-button-hover-bg: #9cc17c;
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        /* === BODY STİLLERİ VE SAYFA AÇILIŞ ANİMASYONU İÇİN EKLENENLER === */
-        /* Bu kısım, mevcut body stilinizle birleştirilmiştir */
         body {
-            opacity: 0; /* Sayfa yüklenirken başlangıçta gizli */
-            animation: sayfaIceriginiGoster 0.5s ease-out 0.6s forwards; /* Açılış animasyonundan sonra body'yi göster */
-            margin: 0; /* Tarayıcı varsayılan margin'lerini sıfırla */
-
+            opacity: 0;
+            animation: sayfaIceriginiGoster 0.5s ease-out 0.6s forwards;
+            margin: 0;
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
             overflow-x: hidden;
             position: relative;
@@ -48,108 +77,45 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
             transition: background 0.8s ease;
             background-color: var(--asikzade-content-bg);
         }
-
-        /* === SAYFA AÇILIŞ ANİMASYONU İÇİN KATMAN === */
         #sayfa-acilis-katmani {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: var(--asikzade-content-bg, #fef6e6); /* Geçiş rengi */
-            z-index: 9999;
-            clip-path: circle(150% at 50% 50%); /* Başlangıçta dolu */
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: var(--asikzade-content-bg, #fef6e6);
+            z-index: 9999; clip-path: circle(150% at 50% 50%);
             animation: daireIleSayfaAc 0.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
         }
-
-        @keyframes daireIleSayfaAc { /* Sayfa açılırken daire küçülür */
-            0% {
-                clip-path: circle(150% at 50% 50%);
-                opacity: 1;
-            }
-            99% {
-                clip-path: circle(0% at 50% 50%);
-                opacity: 1;
-            }
-            100% {
-                clip-path: circle(0% at 50% 50%);
-                opacity: 0;
-                visibility: hidden;
-                pointer-events: none; /* Önemli: Tıklamaları engellememesi için */
-            }
+        @keyframes daireIleSayfaAc {
+            0% { clip-path: circle(150% at 50% 50%); opacity: 1; }
+            99% { clip-path: circle(0% at 50% 50%); opacity: 1; }
+            100% { clip-path: circle(0% at 50% 50%); opacity: 0; visibility: hidden; pointer-events: none; }
         }
-
-        @keyframes sayfaIceriginiGoster { /* Body içeriğini gösterir */
-            to {
-                opacity: 1;
-            }
-        }
-
-        /* === SAYFA KAPANIŞ ANİMASYONU İÇİN KATMAN (YENİ) === */
+        @keyframes sayfaIceriginiGoster { to { opacity: 1; } }
         #sayfa-kapanis-katmani {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: var(--asikzade-content-bg, #fef6e6); /* AÇILIŞ İLE AYNI RENK OLMALI! */
-            z-index: 10000; /* Açılış katmanından da üstte olmalı ki onu kapatsın */
-            clip-path: circle(0% at 50% 50%); /* Başlangıçta görünmez/küçük */
-            opacity: 0; /* Başlangıçta tamamen saydam */
-            visibility: hidden; /* Başlangıçta gizli */
-            pointer-events: none; /* Tıklamaları engellemesin */
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: var(--asikzade-content-bg, #fef6e6);
+            z-index: 10000; clip-path: circle(0% at 50% 50%);
+            opacity: 0; visibility: hidden; pointer-events: none;
         }
-
-        /* Kapanış animasyonunu tetikleyecek class */
         #sayfa-kapanis-katmani.aktif {
-            opacity: 1;
-            visibility: visible;
-            pointer-events: auto; /* Animasyon sırasında tıklamaları yakalasın */
+            opacity: 1; visibility: visible; pointer-events: auto;
             animation: daireIleSayfaKapat 0.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
-            /* Süreyi isteğinize göre ayarlayın */
         }
-
-        @keyframes daireIleSayfaKapat { /* Sayfa kapanırken daire büyür */
-            0% {
-                clip-path: circle(0% at 50% 50%);
-                opacity: 1; /* Animasyon başladığında görünür olmalı */
-            }
-            100% {
-                clip-path: circle(150% at 50% 50%);
-                opacity: 1;
-            }
+        @keyframes daireIleSayfaKapat {
+            0% { clip-path: circle(0% at 50% 50%); opacity: 1; }
+            100% { clip-path: circle(150% at 50% 50%); opacity: 1; }
         }
-
-        /* === MEVCUT DİĞER CSS STİLLERİNİZ (Değiştirilmedi) === */
-        /* Dynamic background classes for Hero */
-        .bg-product1-custom { background: #c24f3e; }
-        .bg-product2-custom { background: #f4eddb; }
-        .bg-product3-custom { background: #473345; }
-        .bg-product4-custom { background: #ffd054; }
-
-        /* === MINIMALIST HEADER === */
+        .bg-product1-custom { background: #c24f3e; } .bg-product2-custom { background: #f4eddb; }
+        .bg-product3-custom { background: #473345; } .bg-product4-custom { background: #ffd054; }
         .header {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 25px 50px;
-            z-index: 1000;
-            background: transparent;
+            position: fixed; top: 0; width: 100%; display: flex; justify-content: space-between; align-items: center;
+            padding: 25px 50px; z-index: 1000; background: transparent;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .header.scrolled {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            padding: 15px 50px;
-            box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+            background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            padding: 15px 50px; box-shadow: 0 1px 0 rgba(0,0,0,0.05);
         }
         .header.scrolled.content-bg-active { background: rgba(254, 246, 230, 0.95); }
         .header.scrolled.contact-bg-active { background: rgba(248, 200, 220, 0.95); }
-
         .logo-container { display: flex; align-items: center; gap: 10px; }
         .logo-container img { height: 60px; transition: height 0.3s ease, filter 0.3s ease; }
         .logo-container img.logo-inverted { filter: invert(1) brightness(1.5) drop-shadow(0 1px 2px rgba(0,0,0,0.3)); }
@@ -159,37 +125,29 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         .logo-text { font-size: 28px; font-weight: 600; letter-spacing: 1.5px; transition: all 0.3s ease; color: var(--asikzade-light-text); }
         .header:not(.scrolled) .logo-text.dark-theme-text { color: var(--asikzade-dark-text); }
         .header.scrolled .logo-text { font-size: 22px; color: var(--asikzade-dark-text); }
-
         .main-nav { display: flex; align-items: center; gap: 25px; }
         .nav-page-links { display: flex; align-items: center; gap: 12px; }
         .nav-page-link-button { padding: 10px 25px; background-color: var(--asikzade-nav-button-bg); color: var(--asikzade-nav-button-text); font-size: 14px; font-weight: 500; text-decoration: none; border-radius: 30px; transition: background-color 0.3s ease, transform 0.2s ease; white-space: nowrap; border: none; }
         .nav-page-link-button:hover { background-color: var(--asikzade-nav-button-hover-bg); transform: translateY(-1px); }
-
         .user-actions-group { display: flex; align-items: center; gap: 15px; }
         .nav-user-icon, .nav-cart-icon { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--asikzade-light-text); color: var(--asikzade-light-text); transition: all 0.3s ease; position: relative; text-decoration: none; }
         .nav-user-icon svg, .nav-cart-icon svg { width: 18px; height: 18px; stroke: currentColor; }
         .header:not(.scrolled) .nav-user-icon.dark-theme-text,
         .header:not(.scrolled) .nav-cart-icon.dark-theme-text { border-color: var(--asikzade-dark-text); color: var(--asikzade-dark-text); }
-        .header.scrolled .nav-user-icon,
-        .header.scrolled .nav-cart-icon { border-color: var(--asikzade-dark-text); color: var(--asikzade-dark-text); width: 36px; height: 36px; }
+        .header.scrolled .nav-user-icon, .header.scrolled .nav-cart-icon { border-color: var(--asikzade-dark-text); color: var(--asikzade-dark-text); width: 36px; height: 36px; }
         .nav-user-icon:hover, .nav-cart-icon:hover { background-color: rgba(255,255,255,0.1); }
-        .header.scrolled .nav-user-icon:hover,
-        .header.scrolled .nav-cart-icon:hover { background-color: rgba(0,0,0,0.05); }
+        .header.scrolled .nav-user-icon:hover, .header.scrolled .nav-cart-icon:hover { background-color: rgba(0,0,0,0.05); }
         .cart-badge { position: absolute; top: -5px; right: -8px; background-color: var(--asikzade-green); color: var(--asikzade-light-text); border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1px solid var(--asikzade-light-text); }
         .header:not(.scrolled) .nav-cart-icon.dark-theme-text .cart-badge { border-color: var(--asikzade-dark-text); }
         .header.scrolled .cart-badge { background-color: var(--asikzade-dark-green); border-color: var(--asikzade-dark-text); }
-        .header.scrolled.contact-bg-active .nav-cart-icon { border-color: var(--asikzade-dark-text); color: var(--asikzade-dark-text); }
-        .header.scrolled.contact-bg-active .cart-badge { background-color: var(--asikzade-dark-green); color: var(--asikzade-light-text); border-color: var(--asikzade-dark-text); }
-
         .hero-product-section { min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; padding-top: 80px; }
         .wave-transition { position: absolute; bottom: -50px; left: 0; width: 100%; height: 120px; z-index: 100; pointer-events: none; }
-        .wave-transition svg { width: 100%; height: 100%; }
-        .wave-transition path { transition: fill 0.8s ease; }
+        .wave-transition svg { width: 100%; height: 100%; } .wave-transition path { transition: fill 0.8s ease; }
         .product-showcase-mawa { position: relative; z-index: 100; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 500px; padding: 20px; }
         .product-name-background-mawa { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: clamp(30px, 9vw, 130px); font-weight: 900; z-index: 1; pointer-events: none; text-transform: uppercase; white-space: normal; max-width: 90vw; line-height: 1.0; opacity: 0; transition: opacity 0.5s ease 0.2s, transform 0.5s ease 0.2s, color 0.5s ease; text-align: center; overflow-wrap: break-word; }
         .product-image-container-mawa { position: relative; width: clamp(200px, 60vw, 300px); height: clamp(280px, 80vw, 400px); perspective: 1200px; margin-bottom: 30px; cursor: grab; z-index: 2; }
         .product-image-mawa { width: 100%; height: 100%; object-fit: contain; transition: transform 0.05s linear; transform-style: preserve-3d; filter: drop-shadow(0 25px 50px rgba(0,0,0,0.25)); will-change: transform; }
-        .product-info-mawa { padding: clamp(10px, 2vw, 15px) clamp(20px, 5vw, 40px); background: rgba(255, 255, 255, 0.9); color: #333; border-radius: 30px; font-size: clamp(18px, 4vw, 22px); font-weight: 600; box-shadow: 0 8px 25px rgba(0,0,0,0.08); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s; position: relative; z-index: 3; opacity: 0; transform: translateY(15px); }
+        .product-info-mawa { padding: clamp(10px, 2vw, 15px) clamp(20px, 5vw, 40px); background: rgba(255, 255, 255, 0.9); color: #333; border-radius: 30px; font-size: clamp(18px, 4vw, 22px); font-weight: 600; box-shadow: 0 8px 25px rgba(0,0,0,0.08); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s; position: relative; z-index: 3; opacity: 0; transform: translateY(15px); cursor: pointer; } /* cursor: pointer eklendi */
         .arrow-mawa { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; background: transparent; border: 1.5px solid rgba(255, 255, 255, 0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; z-index: 200; }
         .arrow-mawa:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.6); transform: translateY(-50%) scale(1.05); }
         .arrow-mawa.left { left: clamp(20px, 4vw, 60px); } .arrow-mawa.right { right: clamp(20px, 4vw, 60px); }
@@ -199,79 +157,26 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         .blob-mawa { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; background: rgba(255, 255, 255, 0.05); filter: blur(80px); animation: morphBlob 30s ease-in-out infinite alternate; }
         .blob-mawa.b1 { width: 40vw; height: 40vw; max-width: 500px; top: -20%; left: -20%; animation-duration: 35s; }
         .blob-mawa.b2 { width: 35vw; height: 35vw; max-width: 450px; bottom: -20%; right: -20%; animation-duration: 40s; }
-
         .dual-image-container { display: flex; width: 100%; gap: 0; padding: 0; background-color: transparent; }
         .full-screen-image-section { width: 50%; height: 70vh; overflow: hidden; position: relative; border-radius: 0; box-shadow: none; }
         .full-screen-image-section img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
         .asikzade-content-wrapper { background-color: var(--asikzade-content-bg); color: var(--asikzade-dark-text); position: relative; z-index: 10; padding-top: 60px; }
         .section { padding: 100px 0; max-width: 1200px; margin: 0 auto; padding-left: 50px; padding-right: 50px; }
         .section-title { font-size: 36px; color: var(--asikzade-dark-text); text-align: center; margin-bottom: 60px; font-weight: 400; letter-spacing: -0.5px; }
-
-        /* === ANA SAYFA TÜM ÜRÜN DETAYLARI LİSTESİ === */
-        #homepage-product-details-list.section {
-            padding-top: 60px; /* Hero'dan sonraki ilk bölüm için üst boşluk */
-            padding-bottom: 0px; /* Sonraki bölümden önceki alt boşluk azaltıldı, arada section title olacak */
-        }
-        .product-detail-block {
-            background-color: transparent; /* Arka planı ana content bg ile aynı yap */
-            border-radius: 0; /* Köşeleri kaldır */
-            /* box-shadow: none; */ /* Gölgeyi kaldır */
-            padding: 0; /* İç padding'i kaldır, section padding'i kullanılacak */
-            margin-bottom: 80px; /* Ürün blokları arası boşluk artırıldı */
-            overflow: hidden;
-        }
+        #homepage-product-details-list.section { padding-top: 60px; padding-bottom: 0px; }
+        .product-detail-block { background-color: transparent; border-radius: 0; padding: 0; margin-bottom: 80px; overflow: hidden; }
         .product-detail-block:last-child { margin-bottom: 0; }
-        .product-detail-block-title {
-            font-size: clamp(2rem, 5vw, 3.2rem); /* product_detail.php deki gibi */
-            font-weight: 700;
-            color: var(--asikzade-dark-text);
-            text-align: left;
-            margin-bottom: 30px;
-        }
-        .product-detail-block-layout {
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr; /* product_detail.php deki gibi */
-            gap: 50px;
-            align-items: flex-start;
-        }
-        .product-detail-block-image-wrapper {
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .product-detail-block-image-wrapper img.main-product-image {
-            width: 100%;
-            max-width: 450px; /* product_detail.php deki gibi */
-            height: auto;
-            display: block;
-            object-fit: contain;
-            border-radius: 0; /* Köşeleri kaldır */
-        }
-        .product-detail-block-badge {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 80px;
-            height: 80px;
-            z-index: 5;
-        }
+        .product-detail-block-title { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 700; color: var(--asikzade-dark-text); text-align: left; margin-bottom: 30px; }
+        .product-detail-block-layout { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 50px; align-items: flex-start; }
+        .product-detail-block-image-wrapper { position: relative; display: flex; justify-content: center; align-items: center; }
+        .product-detail-block-image-wrapper img.main-product-image { width: 100%; max-width: 450px; height: auto; display: block; object-fit: contain; border-radius: 0; }
+        .product-detail-block-badge { position: absolute; bottom: 20px; right: 20px; width: 80px; height: 80px; z-index: 5; }
         .product-detail-block-badge img { width: 100%; height: 100%; object-fit: contain; }
         .product-detail-block-info-wrapper { padding-top: 0; }
-        .product-detail-block-description p {
-            font-size: 1rem; /* product_detail.php deki gibi */
-            line-height: 1.8;
-            color: var(--asikzade-gray);
-            margin-bottom: 25px;
-        }
+        .product-detail-block-description p { font-size: 1rem; line-height: 1.8; color: var(--asikzade-gray); margin-bottom: 25px; }
+        /* .product-detail-block-price-stock, .add-to-cart-form, .quantity-control-block, .product-detail-block-add-to-cart-btn stilleri burada kalabilir, çünkü başka yerlerde kullanılabilirler. Sadece HTML'den kaldırıldılar. */
         .product-detail-block-price-stock { margin-bottom: 25px; }
-        .product-detail-block-price {
-            font-size: 1.8rem; /* product_detail.php deki gibi */
-            font-weight: 600;
-            color: var(--asikzade-dark-text);
-            margin-bottom: 5px;
-        }
+        .product-detail-block-price { font-size: 1.8rem; font-weight: 600; color: var(--asikzade-dark-text); margin-bottom: 5px; }
         .add-to-cart-form { }
         .quantity-control-block { display: flex; align-items: center; border: 1px solid #D1D1D1; border-radius: 8px; overflow: hidden; margin-bottom: 20px; max-width: 150px; }
         .quantity-control-block .quantity-btn { background-color: transparent; border: none; color: #585858; font-size: 1.2rem; padding: 12px 18px; cursor: pointer; line-height: 1; }
@@ -280,27 +185,10 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         .quantity-control-block .quantity-btn:hover { background-color: #f7f7f7; }
         .quantity-control-block .quantity-input { width: 50px; text-align: center; font-size: 1.1rem; font-weight: 500; color: var(--asikzade-dark-text); border: none; padding: 12px 0; -moz-appearance: textfield; }
         .quantity-control-block .quantity-input::-webkit-outer-spin-button, .quantity-control-block .quantity-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        .product-detail-block-add-to-cart-btn {
-            background-color: var(--asikzade-green);
-            color: var(--asikzade-light-text);
-            padding: 14px 35px; /* product_detail.php deki gibi */
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            width: 100%;
-            max-width: 280px; /* product_detail.php deki gibi */
-        }
+        .product-detail-block-add-to-cart-btn { background-color: var(--asikzade-green); color: var(--asikzade-light-text); padding: 14px 35px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.3s ease; width: 100%; max-width: 280px; }
         .product-detail-block-add-to-cart-btn:hover { background-color: var(--asikzade-dark-green); }
-        /* === === */
 
-        /* === ÖNE ÇIKAN ÜRÜNLER KART LİSTESİ (FP-GRID) === */
-        #asikzade-products.section { /* Bu bölüm artık diğer ürünler listesi olacak */
-            padding-top: 60px; /* Üstteki detaylı listeden sonra boşluk */
-            padding-left: 0; padding-right: 0; max-width: none;
-        }
+        #asikzade-products.section { padding-top: 60px; padding-left: 0; padding-right: 0; max-width: none; }
         #asikzade-products .section-title-wrapper { max-width: 1200px; margin: 0 auto 60px auto; padding: 0 50px; }
         .fp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
         .fp-card { position: relative; overflow: hidden; display: block; aspect-ratio: 0.85; background-color: var(--asikzade-light-gray); }
@@ -309,27 +197,77 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         .fp-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to top, rgba(20, 20, 20, 0.85) 0%, rgba(20, 20, 20, 0.5) 50%, rgba(20, 20, 20, 0) 100%); display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding: 25px 20px; opacity: 0; transition: opacity 0.4s ease-in-out; text-align: center; color: var(--asikzade-light-text); }
         .fp-card:hover .fp-overlay { opacity: 1; }
         .fp-overlay-name { font-size: clamp(1rem, 1.5vw, 1.25rem); font-weight: 600; line-height: 1.3; margin-bottom: 8px; transform: translateY(20px); transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s, opacity 0.4s ease 0.1s; opacity: 0; }
-        .fp-overlay-buttons { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        .fp-overlay-btn, .fp-add-to-cart-btn { background-color: var(--asikzade-green); color: var(--asikzade-light-text); padding: 10px 22px; border-radius: 30px; font-size: clamp(0.8rem, 1vw, 0.9rem); font-weight: 500; text-decoration: none; border: none; cursor: pointer; display: inline-block; transform: translateY(20px); opacity: 0; white-space: nowrap; }
-        .fp-overlay-btn { transition: background-color 0.3s ease, transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s, opacity 0.4s ease 0.2s; }
-        .fp-add-to-cart-btn { transition: background-color 0.3s ease, transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.25s, opacity 0.4s ease 0.25s; }
+        
+        /* .fp-overlay içindeki yeni elemanlar için stiller */
+        .fp-overlay .fp-overlay-buttons { /* Bu div formu ve içindekileri sarmalayacak */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px; /* Ürün adı, miktar bloğu ve buton arası boşluk */
+            width: 100%;
+            max-width: 220px; /* Overlay içindeki formun genişliği */
+            margin: 0 auto; /* Ortalama */
+        }
+        .fp-overlay .fp-add-to-cart-form-overlay { /* Formun kendisi */
+            display: contents; /* İçeriği doğrudan .fp-overlay-buttons'ın flex yapısına dahil et */
+        }
+        .fp-overlay .quantity-control-block { /* .overlay-quantity class'ına gerek kalmadı, doğrudan hedefliyoruz */
+            max-width: 130px; /* Miktar bloğu overlay için biraz daha küçük */
+            margin-bottom: 0; /* Gap ile ayarlanacak */
+            border-color: rgba(255,255,255,0.4); /* Overlay için daha açık border */
+            background-color: rgba(0,0,0,0.2); /* Hafif koyu arka plan */
+            border-radius: 6px;
+            opacity: 0; /* Animasyon için başlangıç */
+            transform: translateY(15px); /* Animasyon için başlangıç */
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.15s, opacity 0.4s ease 0.15s;
+        }
+        .fp-card:hover .fp-overlay .quantity-control-block {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .fp-overlay .quantity-control-block .quantity-btn {
+            color: var(--asikzade-light-text);
+            padding: 8px 14px; /* Butonlar için padding */
+            font-size: 1rem;
+        }
+        .fp-overlay .quantity-control-block .quantity-btn.minus { border-right-color: rgba(255,255,255,0.4); }
+        .fp-overlay .quantity-control-block .quantity-btn.plus { border-left-color: rgba(255,255,255,0.4); }
+        .fp-overlay .quantity-control-block .quantity-btn:hover { background-color: rgba(255,255,255,0.15); }
+        .fp-overlay .quantity-control-block .quantity-input {
+            width: 40px; /* Input genişliği */
+            font-size: 1rem;
+            color: var(--asikzade-light-text);
+            background-color: transparent;
+        }
+        .fp-overlay .fp-add-to-cart-btn { /* Bu class zaten sepete ekle butonları için kullanılıyor, stilini koruyabilir */
+            background-color: var(--asikzade-green);
+            color: var(--asikzade-light-text);
+            padding: 10px 22px;
+            border-radius: 30px;
+            font-size: clamp(0.8rem, 1vw, 0.9rem);
+            font-weight: 500;
+            text-decoration: none; border: none; cursor: pointer;
+            display: inline-block;
+            transform: translateY(20px); opacity: 0;
+            white-space: nowrap;
+            width: 100%; /* .fp-overlay-buttons genişliğine uysun */
+            transition: background-color 0.3s ease, transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.25s, opacity 0.4s ease 0.25s;
+        }
         .fp-card:hover .fp-overlay-name,
-        .fp-card:hover .fp-overlay-btn,
-        .fp-card:hover .fp-add-to-cart-btn { transform: translateY(0); opacity: 1; }
-        .fp-overlay-btn:hover, .fp-add-to-cart-btn:hover { background-color: var(--asikzade-dark-green); }
-        /* === === */
+        .fp-card:hover .fp-add-to-cart-btn { /* Miktar bloğu için ayrı :hover tanımı yapıldı */
+            transform: translateY(0); opacity: 1;
+        }
+        .fp-add-to-cart-btn:hover { background-color: var(--asikzade-dark-green); }
 
         .about-section-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: center; }
         .about-image img { width: 100%; height: 450px; object-fit: cover; display: block; filter: grayscale(10%); border-radius: 8px; }
         .about-text h3 { font-size: 28px; margin-bottom: 30px; font-weight: 500; line-height: 1.4; }
         .about-text p { font-size: 16px; margin-bottom: 25px; color: var(--asikzade-gray); line-height: 1.9; font-weight: 300; }
-
         .benefits-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 60px; }
         .benefit-icon { width: 48px; height: 48px; border: 1.5px solid var(--asikzade-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 0 25px 0; }
         .benefit-icon svg { width: 22px; height: 22px; fill: var(--asikzade-green); }
         .benefit-item h4 { font-size: 20px; margin-bottom: 15px; font-weight: 500; }
         .benefit-item p { font-size: 15px; color: var(--asikzade-gray); line-height: 1.8; font-weight: 300; }
-
         #asikzade-contact { background-color: var(--asikzade-contact-bg); padding: 100px 0; color: var(--asikzade-dark-text); }
         .contact-container { max-width: 900px; margin: 0 auto; padding: 0 30px; }
         .contact-title { font-size: clamp(2.5rem, 8vw, 5rem); font-weight: 800; text-align: center; margin-bottom: 60px; color: var(--asikzade-dark-text); line-height: 1; letter-spacing: -1px; }
@@ -341,7 +279,6 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         .contact-form textarea { min-height: 150px; resize: vertical; }
         .contact-form button { background-color: var(--asikzade-green); color: var(--asikzade-light-text); padding: 18px 30px; border: none; border-radius: 30px; font-size: 1.05rem; font-weight: 500; cursor: pointer; transition: background-color 0.3s ease, transform 0.3s ease; align-self: flex-start; }
         .contact-form button:hover { background-color: var(--asikzade-dark-green); transform: translateY(-2px); }
-
         .insta-promo-section { position: relative; background-color: var(--asikzade-promo-bg); padding: clamp(60px, 10vw, 120px) 20px; overflow: hidden; min-height: 60vh; display: flex; align-items: center; justify-content: center; }
         .insta-promo-content { position: relative; z-index: 10; text-align: center; max-width: 700px; padding: 20px; }
         .insta-promo-handle { font-size: clamp(0.8rem, 1.5vw, 1rem); font-weight: 500; color: var(--asikzade-dark-text); margin-bottom: 10px; letter-spacing: 0.5px; }
@@ -353,7 +290,6 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         .promo-image img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block; }
         .promo-image-1 { top: clamp(10px, 3%, 50px); left: clamp(10px, 4%, 60px); transform: rotate(-12deg); } .promo-image-2 { top: clamp(15px, 4%, 60px); right: clamp(10px, 3%, 50px); transform: rotate(10deg); }
         .promo-image-3 { bottom: clamp(10px, 3%, 50px); left: clamp(15px, 5%, 70px); transform: rotate(8deg); } .promo-image-4 { bottom: clamp(15px, 4%, 60px); right: clamp(15px, 5%, 70px); transform: rotate(-15deg); }
-
         .footer { background-color: var(--asikzade-content-bg); padding: 60px 0 30px; position: relative; z-index: 20; color: var(--asikzade-dark-text); border-top: none; }
         .footer-content { max-width: 1200px; margin: 0 auto; padding: 0 50px; }
         .footer-social-row { display: flex; justify-content: center; margin-bottom: 40px; }
@@ -366,13 +302,10 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         .footer-links a { color: var(--asikzade-gray); text-decoration: none; font-size: 14px; font-weight: 400; transition: color 0.3s ease; }
         .footer-links a:hover { color: var(--asikzade-dark-text); }
         .copyright { font-size: 14px; color: var(--asikzade-gray); font-weight: 400; text-align: left; margin: 0; }
-
         @keyframes morphBlob { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(30px, -30px) scale(1.1); } }
         .product-transition-out { animation: fadeOut 0.3s ease forwards; } .product-transition-in { animation: fadeIn 0.3s ease forwards; }
         @keyframes fadeOut { to { opacity: 0; } } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .product-name-bg-transition-out { opacity: 0; } .product-name-bg-transition-in { opacity: 1; }
-
-        /* RESPONSIVE STYLES */
         @media (max-width: 1024px) {
             .header { padding: 20px 30px; } .header.scrolled { padding: 12px 30px; } .logo-container img { height: 54px; } .header.scrolled .logo-container img { height: 44px; } .logo-text { font-size: 24px; } .header.scrolled .logo-text { font-size: 20px; }
             .main-nav { gap: 20px; } .nav-page-links { gap: 10px; } .nav-page-link-button { padding: 9px 18px; font-size: 13px; }
@@ -382,9 +315,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
             .dual-image-container { flex-direction: column; gap: 0; } .full-screen-image-section { width: 100%; height: 50vh; }
             .promo-image { width: clamp(90px, 14vw, 160px); } .promo-image-1 { left: clamp(10px, 2%, 40px); top: clamp(10px, 2%, 30px); } .promo-image-2 { right: clamp(10px, 1.5%, 35px); top: clamp(15px, 3%, 45px); } .promo-image-3 { left: clamp(10px, 3%, 45px); bottom: clamp(10px, 2%, 30px); } .promo-image-4 { right: clamp(10px, 2.5%, 40px); bottom: clamp(15px, 3%, 45px); }
             .contact-layout { grid-template-columns: 200px 1fr; align-items: center; } .contact-brand-aside { text-align: right; padding-right: 30px; }
-            /* Homepage product details list tablet */
             .product-detail-block-layout { gap: 30px; grid-template-columns: 0.7fr 1.3fr; }
-             /* FP Grid Tablet */
             #asikzade-products.section { padding-left: 30px; padding-right: 30px; max-width: 1200px; margin-left: auto; margin-right: auto; }
             #asikzade-products .section-title-wrapper { padding-left: 0; padding-right: 0; max-width: none; }
             .fp-grid { grid-template-columns: repeat(2, 1fr); gap: 25px; } .fp-card { aspect-ratio: 1; border-radius: 8px; }
@@ -392,11 +323,11 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         @media (max-width: 992px) {
             .user-actions-group { gap: 20px; } .benefits-grid { grid-template-columns: 1fr; gap: 50px; }
             .nav-page-link-button { padding: 8px 15px; font-size: 12px; } .nav-page-links { gap: 8px; } .main-nav { gap: 15px; }
-            /* Homepage product details list smaller tablet */
             .product-detail-block-layout { grid-template-columns: 1fr; text-align: center; }
             .product-detail-block-image-wrapper { margin: 0 auto 20px auto; }
-            .add-to-cart-form { align-items: center; }
-            .quantity-control-block { margin-left: auto; margin-right: auto; }
+            /* .add-to-cart-form içindeki elemanlar artık yok, bu kural gereksiz olabilir. */
+            /* .add-to-cart-form { display: flex; flex-direction: column; align-items: center; }  */
+            /* .quantity-control-block { margin-left: auto; margin-right: auto; } */
             .product-detail-block-title { text-align: center;}
         }
         @media (max-width: 768px) {
@@ -410,14 +341,13 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
             .insta-promo-section { padding-top: clamp(40px, 8vw, 80px); padding-bottom: clamp(40px, 8vw, 80px); } .promo-image { width: clamp(90px, 14vw, 160px); } .promo-image-1 { left: clamp(10px, 2%, 40px); top: clamp(10px, 2%, 30px); } .promo-image-2 { right: clamp(10px, 1.5%, 35px); top: clamp(15px, 3%, 45px); } .promo-image-3 { display: none;  } .promo-image-4 { bottom: clamp(15px, 4%, 35px); right: clamp(10px, 1.5%, 20px); transform: rotate(-12deg); } .insta-promo-title { font-size: clamp(1.5rem, 6vw, 2.5rem); }
             #asikzade-contact { padding: 60px 0; } .contact-title { font-size: clamp(2rem, 10vw, 3.5rem); margin-bottom: 40px; } .contact-layout { grid-template-columns: 1fr; gap: 20px; } .contact-brand-aside { text-align: center; padding-right: 0; font-size: clamp(1rem, 2vw, 1.5rem); } .contact-form input[type="text"], .contact-form input[type="email"], .contact-form input[type="tel"], .contact-form textarea { padding: 16px 20px; font-size: 0.95rem; } .contact-form button { padding: 16px 25px; font-size: 1rem; align-self: center;}
             .footer-content { padding: 0 20px; } .footer-bottom { flex-direction: column; gap: 15px; text-align: center; padding-top: 20px; } .footer-links ul { justify-content: center; flex-wrap: wrap; gap: 10px 20px; } .copyright { text-align: center; } .footer-social-row { margin-bottom: 30px; } .social-icons a { width: 44px; height: 44px; } .social-icons svg { width: 20px; height: 20px; } .footer { padding: 40px 0 20px; }
-            /* Homepage product details list mobile */
-            .product-detail-block { padding: 20px; margin-bottom: 40px; }
-            .product-detail-block-title { font-size: clamp(1.8rem, 6vw, 2.5rem); /* product_detail.php deki mobil başlık gibi */ text-align: center; margin-bottom: 20px; }
-            /* FP Grid Mobile */
+            .product-detail-block { padding: 0px; margin-bottom: 40px; }
+            .product-detail-block-title { font-size: clamp(1.8rem, 6vw, 2.5rem); text-align: center; margin-bottom: 20px; }
             #asikzade-products.section { padding-left: 20px; padding-right: 20px; }
             #asikzade-products .section-title-wrapper { padding-left: 0; padding-right: 0; }
             .fp-grid { grid-template-columns: 1fr; gap: 20px; } .fp-card { aspect-ratio: 4/3; border-radius: 8px; }
-            .fp-overlay-name { font-size: 1.3rem; } .fp-overlay-btn, .fp-add-to-cart-btn { font-size: 0.95rem; padding: 12px 24px; }
+            .fp-overlay-name { font-size: 1.3rem; }
+            .fp-overlay .fp-add-to-cart-btn { font-size: 0.95rem; padding: 12px 24px; } /* .fp-overlay-btn kaldırıldı gibi */
         }
         @media (max-width: 480px) {
             .header { padding: 15px 15px; } .logo-container img { height: 42px; } .header.scrolled .logo-container img { height: 36px; } .logo-text { font-size: 20px; } .header.scrolled .logo-text { font-size: 17px; } .logo-container { gap: 8px; }
@@ -432,9 +362,8 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
     </style>
 </head>
 <body>
-     <!-- Buradaki ID düzeltildi: "sayfa-gecis-katmani" yerine "sayfa-acilis-katmani" -->
-     <div id="sayfa-acilis-katmani"></div>
-      <div id="sayfa-kapanis-katmani"></div>
+    <div id="sayfa-acilis-katmani"></div>
+    <div id="sayfa-kapanis-katmani"></div>
     <header class="header" id="mainHeader">
         <div class="logo-container">
             <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo" id="headerLogoImage">
@@ -443,59 +372,15 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         <nav class="main-nav">
             <div class="nav-page-links">
                 <a href="#asikzade-about" class="nav-page-link-button">HAKKIMIZDA</a>
-                <a href="#asikzade-benefits" class="nav-page-link-button">FAYDALARINI İNCELE</a>
-                <a href="#asikzade-products" class="nav-page-link-button">ÜRÜNLERİ KEŞFET</a> <!-- Bu link hala kart listesine gidebilir -->
+                <a href="#homepage-product-details-list" class="nav-page-link-button">ÜRÜN DETAYLARI</a> <!-- Link güncellendi -->
+                <a href="#asikzade-products" class="nav-page-link-button">ÜRÜNLERİMİZ</a>
             </div>
             <div class="user-actions-group">
-                <a href="login.php" class="nav-user-icon" aria-label="Kullanıcı Girişi"
-                   <?php
-                   // Eğer body'de koyu arka plan varsa (ör: bg-product3-custom), inline style ile ikonları beyaz yap
-                   $darkBgClasses = ['bg-product3-custom'];
-                   $bodyClass = isset($_SERVER['REQUEST_URI']) ? '' : ''; // PHP'den body class okunamaz, JS ile yapılacak
-                   // PHP ile doğrudan body class kontrolü mümkün değil, JS ile yapılacak
-                   ?>
-                ><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></a>
-                <a href="sepet.php" class="nav-cart-icon" aria-label="Sepetim"
-                   ><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                <a href="login.php" class="nav-user-icon" aria-label="Kullanıcı Girişi"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></a>
+                <a href="sepet.php" class="nav-cart-icon" aria-label="Sepetim"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
                 <?php if ($cart_item_count > 0): ?><span class="cart-badge"><?php echo $cart_item_count; ?></span><?php endif; ?>
                 </a>
             </div>
-            <script>
-            // Arka plan koyu ise ikonları beyaz yap
-            (function() {
-                function updateNavIconsForBg() {
-                    var darkBgClasses = ['bg-product3-custom'];
-                    var body = document.body;
-                    var userIcon = document.querySelector('.nav-user-icon');
-                    var cartIcon = document.querySelector('.nav-cart-icon');
-                    var isDark = darkBgClasses.some(function(cls) { return body.classList.contains(cls); });
-                    if (userIcon && cartIcon) {
-                        if (isDark) {
-                            cartIcon.style.borderColor = '#fff';
-                            cartIcon.style.color = '#fff';
-                        } else {
-                            cartIcon.style.borderColor = '';
-                            cartIcon.style.color = '';
-                        }
-                    }
-                }
-                // İlk yüklemede ve ürün değişiminde çalıştır
-                document.addEventListener('DOMContentLoaded', updateNavIconsForBg);
-                // Hero ürün değişiminde de çalışmalı
-                window.addEventListener('load', function() {
-                    if (typeof showMawaProduct === 'function') {
-                        var origShowMawaProduct = showMawaProduct;
-                        window.showMawaProduct = function(idx) {
-                            origShowMawaProduct(idx);
-                            setTimeout(updateNavIconsForBg, 10);
-                        };
-                    }
-                });
-                // Ayrıca body class değişiminde de tetiklenmeli
-                var observer = new MutationObserver(updateNavIconsForBg);
-                observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-            })();
-            </script>
         </nav>
     </header>
 
@@ -504,7 +389,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         <div class="product-showcase-mawa">
             <div class="product-name-background-mawa" id="productNameBackgroundMawa"></div>
             <div class="product-image-container-mawa" id="productContainerMawa"><img src="" alt="Aşıkzade Ürünü" class="product-image-mawa" id="productImageMawa"></div>
-            <div class="product-info-mawa" id="productNameMawa">Ürün Adı</div>
+            <div class="product-info-mawa" id="productNameMawa">Ürün Adı</div> <!-- Buna tıklama eventi eklenecek -->
         </div>
         <div class="arrow-mawa right" onclick="nextMawaProduct()"></div>
         <div class="bg-element-mawa blob-mawa b1"></div><div class="bg-element-mawa blob-mawa b2"></div>
@@ -514,7 +399,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
     <div style="width:100vw; height:0; margin:0; padding:0; overflow:hidden; visibility:hidden; position:absolute; pointer-events:none;"></div>
 
     <main class="asikzade-content-wrapper">
-                <section class="section" id="asikzade-about">
+        <section class="section" id="asikzade-about">
             <h2 class="section-title">Hakkımızda</h2>
             <div class="about-section-layout">
                 <div class="about-image"><img src="https://i.imgur.com/e7I7JoY.jpeg" alt="Aşıkzade Üretim Alanı"></div>
@@ -541,17 +426,17 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
             <section class="full-screen-image-section"><img src="https://i.imgur.com/WbqIJfj.jpeg" alt="Aşıkzade Üretim Süreci Tanıtım 2"></section>
         </div>
 
-        <section class="section" id="homepage-product-details-list">
-            <div id="asikzade-benefits"> </div>
-            <!-- Bu bölümün genel bir başlığı olmayacak, her ürün kendi başlığına sahip olacak -->
+        <section class="section" id="homepage-product-details-list"> <!-- Eski "Faydaları" kısmı, şimdi sadece detaylar -->
+            <div id="asikzade-benefits"> </div> <!-- Bu ID hala bir şeye yarıyorsa kalabilir, veya kaldırılabilir -->
             <?php
             if (isset($products) && is_array($products) && !empty($products)):
-                foreach ($products as $product_id => $product_data):
-                    if (empty($product_data['name']) || empty($product_data['image']) || !isset($product_data['price']) || empty($product_data['description'])) {
+                foreach ($products as $product_key => $product_data): // product_key olarak değiştirdim, product_id'yi formda kullanıyoruz
+                    if (empty($product_data['name']) || empty($product_data['image']) || empty($product_data['description'])) {
                         continue;
                     }
+                    $current_product_id = $product_data['id'] ?? $product_key; // product_data içinden ID al, yoksa key'i kullan
             ?>
-                <div class="product-detail-block" id="product-detail-<?php echo $product_id; ?>"> <!-- ID güncellendi -->
+                <div class="product-detail-block" id="product-detail-<?php echo htmlspecialchars($current_product_id); ?>">
                     <h3 class="product-detail-block-title"><?php echo htmlspecialchars($product_data['name']); ?></h3>
                     <div class="product-detail-block-layout">
                         <div class="product-detail-block-image-wrapper">
@@ -566,19 +451,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
                             <div class="product-detail-block-description">
                                 <p><?php echo nl2br(htmlspecialchars($product_data['description'])); ?></p>
                             </div>
-                            <div class="product-detail-block-price-stock">
-                                <p class="product-detail-block-price"><?php echo number_format($product_data['price'], 2); ?> TL</p>
-                            </div>
-                            <form action="cart_action.php" method="post" class="add-to-cart-form">
-                                <input type="hidden" name="action" value="add">
-                                <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($product_data['id']); ?>">
-                                <div class="quantity-control-block">
-                                    <button type="button" class="quantity-btn minus" aria-label="Azalt">-</button>
-                                    <input type="number" name="quantity" value="1" min="1" class="quantity-input" aria-label="Miktar">
-                                    <button type="button" class="quantity-btn plus" aria-label="Artır">+</button>
-                                </div>
-                                <button type="submit" class="product-detail-block-add-to-cart-btn">SEPETE EKLE</button>
-                            </form>
+                            <!-- FİYAT VE SEPETE EKLEME KISIMLARI BURADAN KALDIRILDI -->
                         </div>
                     </div>
                 </div>
@@ -589,36 +462,42 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
             endif;
             ?>
         </section>
-    <section class="insta-promo-section">
-        <div class="promo-image promo-image-1"><img src="https://i.imgur.com/fIyzlOi.png" alt="Aşıkzade Doğal Ürün 1"></div>
-        <div class="promo-image promo-image-2"><img src="https://i.imgur.com/KY4PF0E.png" alt="Aşıkzade Yaşam Tarzı 1"></div>
-        <div class="promo-image promo-image-3"><img src="https://i.imgur.com/rnpICDG.png" alt="Aşıkzade Doğal Ürün 2"></div>
-        <div class="promo-image promo-image-4"><img src="https://i.imgur.com/Mufz5KT.png" alt="Aşıkzade Yaşam Tarzı 2"></div>
-        <div class="insta-promo-content"><h2 class="insta-promo-title">SOFRANA İLHAM, <br>AKIŞINA RENK KAT!</h2></div>
-    </section>
-        <!-- Önceki 4'lü Grid Ürün Listesi (fp-grid) olduğu gibi kalacak -->
+        <section class="insta-promo-section">
+            <div class="promo-image promo-image-1"><img src="https://i.imgur.com/fIyzlOi.png" alt="Aşıkzade Doğal Ürün 1"></div>
+            <div class="promo-image promo-image-2"><img src="https://i.imgur.com/KY4PF0E.png" alt="Aşıkzade Yaşam Tarzı 1"></div>
+            <div class="promo-image promo-image-3"><img src="https://i.imgur.com/rnpICDG.png" alt="Aşıkzade Doğal Ürün 2"></div>
+            <div class="promo-image promo-image-4"><img src="https://i.imgur.com/Mufz5KT.png" alt="Aşıkzade Yaşam Tarzı 2"></div>
+            <div class="insta-promo-content"><h2 class="insta-promo-title">SOFRANA İLHAM, <br>AKIŞINA RENK KAT!</h2></div>
+        </section>
+
         <section class="section" id="asikzade-products">
             <div class="section-title-wrapper">
-                <h2 class="section-title">Ürünlerimiz</h2> <!-- Başlık isteğe bağlı olarak değiştirilebilir -->
+                <h2 class="section-title">Ürünlerimiz</h2>
             </div>
             <div class="fp-grid">
                 <?php
                 if (isset($products) && is_array($products) && !empty($products)):
-                    foreach ($products as $product_id => $product_data):
-                        if (empty($product_data['image'])) {
+                    foreach ($products as $product_key_fp => $product_data_fp):
+                        if (empty($product_data_fp['image']) || empty($product_data_fp['name'])) {
                             continue;
                         }
+                        $current_product_id_fp = $product_data_fp['id'] ?? $product_key_fp;
                 ?>
                     <div class="fp-card">
-                        <img src="<?php echo htmlspecialchars($product_data['image']); ?>" alt="<?php echo htmlspecialchars($product_data['name']); ?>">
+                        <img src="<?php echo htmlspecialchars($product_data_fp['image']); ?>" alt="<?php echo htmlspecialchars($product_data_fp['name']); ?>">
                         <div class="fp-overlay">
-                            <h3 class="fp-overlay-name"><?php echo htmlspecialchars($product_data['name']); ?></h3>
+                            <h3 class="fp-overlay-name"><?php echo htmlspecialchars($product_data_fp['name']); ?></h3>
                             <div class="fp-overlay-buttons">
-                                <form action="cart_action.php" method="post" style="margin:0; padding:0; display:inline;">
+                                <form action="cart_action.php" method="post" class="fp-add-to-cart-form-overlay">
                                     <input type="hidden" name="action" value="add">
-                                    <input type="hidden" name="product_id" value="<?php echo $product_id; ?>">
-                                    <input type="hidden" name="quantity" value="1">
+                                    <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($current_product_id_fp); ?>">
                                     
+                                    <div class="quantity-control-block"> <!-- Miktar bloğu eklendi -->
+                                        <button type="button" class="quantity-btn minus" aria-label="Azalt">-</button>
+                                        <input type="number" name="quantity" value="1" min="1" class="quantity-input" aria-label="Miktar">
+                                        <button type="button" class="quantity-btn plus" aria-label="Artır">+</button>
+                                    </div>
+                                    <button type="submit" class="fp-add-to-cart-btn">SEPETE EKLE</button>
                                 </form>
                             </div>
                         </div>
@@ -630,10 +509,8 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
             </div>
         </section>
 
-
-
-
-        <section class="section" >
+        <section class="section" > <!-- Neden Aşıkzade? bölümü için ID yoktu, id="asikzade-why" gibi bir şey eklenebilir isterseniz -->
+             <div id="asikzade-benefits-anchor"></div> <!-- Bu, Neden Aşıkzade'nin hemen üstüne bir anchor. Eğer Faydalarını İncele hala buraya geliyorsa -->
             <h2 class="section-title">Neden Aşıkzade?</h2>
             <div class="benefits-grid">
                 <div class="benefit-item"><div class="benefit-icon"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"></path></svg></div><h4>%100 Organik</h4><p>Tüm ürünlerimiz sertifikalı organik tarım yöntemleriyle yetiştirilir.</p></div>
@@ -671,23 +548,24 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
     </footer>
 
     <script>
-        // Miktar artırma/azaltma
-        document.querySelectorAll('.quantity-btn.minus').forEach(button => {
-            button.addEventListener('click', function() {
-                const input = this.parentElement.querySelector('.quantity-input');
-                let currentValue = parseInt(input.value);
-                if (currentValue > 1) input.value = currentValue - 1;
-            });
-        });
-        document.querySelectorAll('.quantity-btn.plus').forEach(button => {
-            button.addEventListener('click', function() {
-                const input = this.parentElement.querySelector('.quantity-input');
-                let currentValue = parseInt(input.value);
-                input.value = currentValue + 1;
-            });
+        // Event delegation ile tüm miktar butonlarını yönet
+        document.addEventListener('click', function(event) {
+            if (event.target.matches('.quantity-btn.minus')) {
+                const input = event.target.parentElement.querySelector('.quantity-input');
+                if (input) {
+                    let currentValue = parseInt(input.value);
+                    if (currentValue > 1) input.value = currentValue - 1;
+                }
+            }
+            if (event.target.matches('.quantity-btn.plus')) {
+                const input = event.target.parentElement.querySelector('.quantity-input');
+                if (input) {
+                    let currentValue = parseInt(input.value);
+                    input.value = currentValue + 1;
+                }
+            }
         });
 
-        // Diğer JavaScript kodları (Header, Hero Slider, Scroll, Animations vb.)
         const mainHeader = document.getElementById('mainHeader');
         const headerLogoImage = document.getElementById('headerLogoImage');
         const siteLogoTextMawa = document.getElementById('siteLogoTextMawa');
@@ -734,7 +612,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
                 currentHeroBgType = mawaProducts[currentMawaProductIndex].productNameBgTextType;
             }
 
-            if (isOverHero) {
+            if (isOverHero && !mainHeader.classList.contains('scrolled')) {
                 mainHeader.style.background = 'transparent';
                 mainHeader.classList.remove('content-bg-active', 'contact-bg-active');
                 setMawaTextColors(currentHeroBgType);
@@ -755,19 +633,18 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
                      isOverContentBg = contentWrapperRect.top <= headerHeight && scrollY > (heroBottom - headerHeight);
                 }
 
-                if (isOverContactBg) {
-                    mainHeader.classList.add('contact-bg-active');
-                    mainHeader.classList.remove('content-bg-active');
-                } else if (isOverContentBg) {
-                    mainHeader.classList.add('content-bg-active');
-                    mainHeader.classList.remove('contact-bg-active');
+                if (mainHeader.classList.contains('scrolled')) {
+                    if (isOverContactBg) {
+                        mainHeader.classList.add('contact-bg-active');
+                        mainHeader.classList.remove('content-bg-active');
+                    } else if (isOverContentBg) {
+                        mainHeader.classList.add('content-bg-active');
+                        mainHeader.classList.remove('contact-bg-active');
+                    } else {
+                        mainHeader.classList.remove('content-bg-active', 'contact-bg-active');
+                    }
                 } else {
-                    mainHeader.classList.remove('content-bg-active', 'contact-bg-active');
-                }
-                 if (mainHeader.classList.contains('scrolled')) {
-                    if (siteLogoTextMawa) siteLogoTextMawa.style.color = 'var(--asikzade-dark-text)';
-                    if (navUserIcon) { navUserIcon.style.borderColor = 'var(--asikzade-dark-text)'; navUserIcon.style.color = 'var(--asikzade-dark-text)'; }
-                    if (navCartIcon) { navCartIcon.style.borderColor = 'var(--asikzade-dark-text)'; navCartIcon.style.color = 'var(--asikzade-dark-text)'; }
+                     mainHeader.classList.remove('content-bg-active', 'contact-bg-active');
                 }
             }
         }
@@ -780,9 +657,6 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
                 const targetElement = document.getElementById(targetId);
                 if (targetElement) {
                     let headerOffset = mainHeader.offsetHeight;
-                     if (window.scrollY < 50 && !mainHeader.classList.contains('scrolled') && targetId !== 'hero-product-section') {
-                        headerOffset = mainHeader.classList.contains('scrolled') ? mainHeader.offsetHeight : 70;
-                    }
                     const elementPosition = targetElement.getBoundingClientRect().top + window.pageYOffset;
                     const offsetPosition = elementPosition - headerOffset - 20;
                     window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
@@ -790,12 +664,12 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
             });
         });
 
-        const mawaProducts = <?php echo json_encode(array_values($mawaProductsJs)); ?>;
+        const mawaProducts = <?php echo json_encode(array_values($mawaProductsJs ?? [])); ?>; // $mawaProductsJs tanımlı değilse boş dizi
         let currentMawaProductIndex = 0;
         let isMawaAnimating = false;
         const bodyForMawaBg = document.body;
         const productImageMawa = document.getElementById('productImageMawa');
-        const productNameMawa = document.getElementById('productNameMawa');
+        const productNameMawa = document.getElementById('productNameMawa'); // ID'si 'productNameMawa' olan element
         const productContainerMawa = document.getElementById('productContainerMawa');
         let mawaMouseX = 0, mawaMouseY = 0;
         let mawaCurrentX = 0, mawaCurrentY = 0;
@@ -818,7 +692,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         }
 
         function changeBodyMawaBackground(bgClass) {
-            <?php $bgClassesToRemove = []; foreach ($mawaProductsJs as $prod) if (!empty($prod['dynamicBgClass'])) $bgClassesToRemove[] = $prod['dynamicBgClass']; echo "const mawaBgClasses = " . json_encode(array_unique($bgClassesToRemove)) . ";\n"; ?>
+            <?php $bgClassesToRemove = []; if (isset($mawaProductsJs) && is_array($mawaProductsJs)) { foreach ($mawaProductsJs as $prod) if (!empty($prod['dynamicBgClass'])) $bgClassesToRemove[] = $prod['dynamicBgClass']; } echo "const mawaBgClasses = " . json_encode(array_unique($bgClassesToRemove)) . ";\n"; ?>
             mawaBgClasses.forEach(cls => bodyForMawaBg.classList.remove(cls));
             if (bgClass) bodyForMawaBg.classList.add(bgClass);
         }
@@ -834,7 +708,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
                 changeBodyMawaBackground(currentProductData.dynamicBgClass); updateHeaderStyles();
                 productImageMawa.src = currentProductData.image; productImageMawa.alt = `Aşıkzade ${currentProductData.name}`;
                 if(productNameMawa) productNameMawa.textContent = currentProductData.name;
-                if(productNameBackgroundMawa) { productNameBackgroundMawa.textContent = currentProductData.name; productNameBackgroundMawa.style.color = currentProductData.productNameBgTextType === "dark" ? getComputedStyle(document.documentElement).getPropertyValue('--product-bg-text-dark').trim() : getComputedStyle(document.documentElement).getPropertyValue('--product-bg-text-light').trim(); }
+                if(productNameBackgroundMawa) { productNameBackgroundMawa.textContent = currentProductData.name; }
                 productImageMawa.classList.remove('product-transition-out'); productImageMawa.classList.add('product-transition-in');
                 setTimeout(() => { if(productNameMawa) { productNameMawa.style.opacity = '1'; productNameMawa.style.transform = 'translateY(0)'; } if(productNameBackgroundMawa) { productNameBackgroundMawa.classList.remove('product-name-bg-transition-out'); productNameBackgroundMawa.classList.add('product-name-bg-transition-in'); } }, 150);
                 setTimeout(() => { productImageMawa.classList.remove('product-transition-in'); isMawaAnimating = false; }, 300);
@@ -850,28 +724,56 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         }
         let autoRotateInterval; function startAutoRotate() { if (autoRotateInterval) clearInterval(autoRotateInterval); if (mawaProducts.length > 1) autoRotateInterval = setInterval(nextMawaProduct, 5000); }
         function stopAutoRotate() { if (autoRotateInterval) clearInterval(autoRotateInterval); }
-        window.addEventListener('load', () => { if (mawaProducts.length > 0) { showMawaProduct(0); startAutoRotate(); } updateHeaderStyles(); document.body.style.opacity = '1'; });
+        window.addEventListener('load', () => { if (mawaProducts.length > 0) { showMawaProduct(0); startAutoRotate(); } else { updateHeaderStyles(); } document.body.style.opacity = '1'; });
         if (productContainerMawa) { productContainerMawa.addEventListener('mouseenter', stopAutoRotate); productContainerMawa.addEventListener('mouseleave', startAutoRotate); productContainerMawa.addEventListener('touchstart', stopAutoRotate, { passive: true }); }
         document.querySelectorAll('.arrow-mawa').forEach(arrow => { arrow.addEventListener('click', () => { stopAutoRotate(); setTimeout(startAutoRotate, 10000); }); });
+
+        // Hero'daki ürün adına tıklayınca ilgili ürün detayına scroll et
+        if (productNameMawa) {
+            productNameMawa.addEventListener('click', function() {
+                if (mawaProducts && mawaProducts.length > 0 && typeof currentMawaProductIndex !== 'undefined') {
+                    const currentProductData = mawaProducts[currentMawaProductIndex];
+                    const targetProductId = currentProductData.id; // $mawaProductsJs'deki 'id' alanı
+
+                    if (targetProductId) {
+                        const targetElementId = 'product-detail-' + targetProductId;
+                        const targetElement = document.getElementById(targetElementId);
+
+                        if (targetElement) {
+                            let headerOffset = mainHeader.offsetHeight;
+                            const elementPosition = targetElement.getBoundingClientRect().top + window.pageYOffset;
+                            const offsetPosition = elementPosition - headerOffset - 20; // 20px ek boşluk
+                            window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                        } else {
+                            console.warn('Hedef ürün detayı bulunamadı (ID):', targetElementId);
+                        }
+                    } else {
+                        console.warn('Mevcut Mawa ürünü için ID tanımlanmamış.');
+                    }
+                }
+            });
+        }
+
 
         const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
         const fadeInObserver = new IntersectionObserver((entries) => { entries.forEach(entry => { if (entry.isIntersecting) { entry.target.style.opacity = '1'; if(entry.target.style.transform.includes('translateY')) entry.target.style.transform = 'translateY(0)'; fadeInObserver.unobserve(entry.target); } }); }, observerOptions);
         document.addEventListener('DOMContentLoaded', () => {
-             // handleScroll(); // This function is not defined in the provided code, removing or defining it is required.
              if (waveToContentPath) waveToContentPath.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--asikzade-content-bg').trim());
              if (waveToInstaPromoPath) waveToInstaPromoPath.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--asikzade-promo-bg').trim());
              updateHeaderStyles();
+            const bodyClassObserver = new MutationObserver(function(mutationsList) { for(let mutation of mutationsList) { if (mutation.type === 'attributes' && mutation.attributeName === 'class') { updateHeaderStyles(); break; } } });
+            bodyClassObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
             const elementsToFadeIn = document.querySelectorAll(
                 '.section:not(.hero-product-section) .about-section-layout, .section:not(.hero-product-section) .about-text, .section:not(.hero-product-section) .about-image, ' +
                 '.benefit-item, .dual-image-container, ' +
-                '#asikzade-products .fp-card, .insta-promo-content > *, ' + // fp-card hala listede
+                '#asikzade-products .fp-card, .insta-promo-content > *, ' +
                 '.contact-title, .contact-brand-aside, .contact-form input, .contact-form textarea, .contact-form button,' +
-                '.product-detail-block .product-detail-block-layout > div' // Yeni ürün detay blokları için
+                '.product-detail-block .product-detail-block-layout > div'
             );
             elementsToFadeIn.forEach((el, index) => {
                 let baseDelay = 0, initialY = '30px', transitionProps = `opacity 0.8s ease ${baseDelay}s, transform 0.8s ease ${baseDelay}s`;
                 if (el.classList.contains('benefit-item')) { baseDelay = Array.from(document.querySelectorAll('.benefit-item')).indexOf(el) * 0.1; initialY = '20px'; }
-                else if (el.classList.contains('fp-card')) { baseDelay = Array.from(document.querySelectorAll('#asikzade-products .fp-card')).indexOf(el) * 0.05; initialY = '0'; transitionProps = `opacity 0.6s ease ${baseDelay}s`; } // #asikzade-products altındaki fp-card'lar hedefleniyor
+                else if (el.classList.contains('fp-card')) { baseDelay = Array.from(document.querySelectorAll('#asikzade-products .fp-card')).indexOf(el) * 0.05; initialY = '0'; transitionProps = `opacity 0.6s ease ${baseDelay}s`; }
                 else if (el.classList.contains('dual-image-container')) { initialY = '0px'; baseDelay = 0.2; }
                 else if (el.parentElement && el.parentElement.classList.contains('insta-promo-content')) { if (el.classList.contains('insta-promo-handle')) baseDelay = 0.1; else if (el.classList.contains('insta-promo-title')) baseDelay = 0.2; else if (el.classList.contains('insta-promo-button')) baseDelay = 0.3; initialY = '20px'; }
                 else if (el.classList.contains('contact-title')) { baseDelay = 0.1; initialY = '20px'; } else if (el.classList.contains('contact-brand-aside')) { baseDelay = 0.15; initialY = '20px'; }
@@ -886,60 +788,24 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
         function requestTick() { if (!ticking) { window.requestAnimationFrame(updateParallax); ticking = true; } }
         window.addEventListener('scroll', requestTick, { passive: true });
         document.addEventListener('DOMContentLoaded', () => { const images = document.querySelectorAll('img:not(.product-image-mawa):not(.full-screen-image-section img)'); images.forEach(img => img.loading = 'lazy'); if (productImageMawa && productNameMawa && productNameBackgroundMawa) { /* Initial setup if needed */ } });
-        // document.body.style.opacity = '0'; // Bu satır sayfa açılış animasyonu CSS'i ile çakışabilir, kaldırıldı.
-        // document.body.style.transition = 'opacity 0.5s ease'; // Bu satır sayfa açılış animasyonu CSS'i ile çakışabilir, kaldırıldı.
-
         document.addEventListener('DOMContentLoaded', () => {
             const kapanisKatmani = document.getElementById('sayfa-kapanis-katmani');
-            const kapanisAnimasyonSuresi = 600; // CSS'teki animation-duration ile aynı olmalı (ms cinsinden)
-
-            // Sadece aynı domaindeki ve yeni sekmede açılmayan linkleri yakala
+            const kapanisAnimasyonSuresi = 600;
             document.querySelectorAll('a[href]').forEach(link => {
-                // Harici linkler, # ile başlayan anchor linkler veya _blank hedefleri hariç
-                if (link.hostname === window.location.hostname &&
-                    !link.href.startsWith(window.location.origin + window.location.pathname + '#') && // Sayfa içi anchor değilse
-                    link.target !== '_blank' &&
-                    !link.href.startsWith('mailto:') &&
-                    !link.href.startsWith('tel:')) {
-
+                if (link.hostname === window.location.hostname && !link.href.startsWith(window.location.origin + window.location.pathname + '#') && link.target !== '_blank' && !link.href.startsWith('mailto:') && !link.href.startsWith('tel:')) {
                     link.addEventListener('click', function(event) {
-                        event.preventDefault(); // Varsayılan link davranışını engelle
-                        const hedefUrl = this.href;
-
-                        // Kapanış animasyonunu başlat
+                        event.preventDefault(); const hedefUrl = this.href;
                         kapanisKatmani.classList.add('aktif');
-
-                        // Animasyon bittikten sonra sayfayı yönlendir
-                        setTimeout(() => {
-                            window.location.href = hedefUrl;
-                        }, kapanisAnimasyonSuresi);
+                        setTimeout(() => { window.location.href = hedefUrl; }, kapanisAnimasyonSuresi);
                     });
                 }
             });
-
-            // Tarayıcının geri/ileri butonları için (bfcache - back/forward cache)
-            // Eğer sayfa bfcache'den yükleniyorsa, açılış animasyonunu tekrar oynatmayabilir.
-            // Bu durumda katmanı manuel olarak gizleyebiliriz.
-            // Bu kısım daha karmaşık senaryolar için ve her zaman %100 çalışmayabilir.
             window.addEventListener('pageshow', function(event) {
                 const acilisKatmani = document.getElementById('sayfa-acilis-katmani');
-                if (event.persisted) { // Sayfa bfcache'den yüklendiyse
-                    // Açılış katmanının animasyonu zaten oynamış olabilir,
-                    // bu yüzden manuel olarak gizleyebiliriz veya body'yi direkt görünür yapabiliriz.
-                    if (acilisKatmani) {
-                        acilisKatmani.style.opacity = '0';
-                        acilisKatmani.style.visibility = 'hidden';
-                        acilisKatmani.style.pointerEvents = 'none';
-                    }
-                    document.body.style.opacity = '1'; // Body'yi hemen göster
-                    // Gerekirse kapanış katmanını da sıfırla
-                    if (kapanisKatmani && kapanisKatmani.classList.contains('aktif')) {
-                        kapanisKatmani.classList.remove('aktif');
-                        // Stilini CSS'teki başlangıç durumuna getirebiliriz.
-                        kapanisKatmani.style.clipPath = 'circle(0% at 50% 50%)';
-                        kapanisKatmani.style.opacity = '0';
-                        kapanisKatmani.style.visibility = 'hidden';
-                    }
+                if (event.persisted) {
+                    if (acilisKatmani) { acilisKatmani.style.opacity = '0'; acilisKatmani.style.visibility = 'hidden'; acilisKatmani.style.pointerEvents = 'none'; }
+                    document.body.style.opacity = '1';
+                    if (kapanisKatmani && kapanisKatmani.classList.contains('aktif')) { kapanisKatmani.classList.remove('aktif'); kapanisKatmani.style.clipPath = 'circle(0% at 50% 50%)'; kapanisKatmani.style.opacity = '0'; kapanisKatmani.style.visibility = 'hidden'; }
                 }
             });
         });

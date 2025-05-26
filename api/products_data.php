@@ -52,13 +52,14 @@ $products = [
 
 // Hero slider için JS'ye ürün verisi aktarımı
 $mawaProductsJs = [];
-foreach ($products as $id => $product) { // $id will be 1, 2, 3, 4...
-    if (!empty($product['hero_image'])) {
+foreach ($products as $id_key => $product_data) { // $id_key anahtar (1, 2, 3, 4), $product_data ise ürünün tüm verisi
+    if (!empty($product_data['hero_image'])) {
         $mawaProductsJs[] = [ // Using [] ensures numerically indexed array for JS
-            'name' => $product['name'],
-            'image' => $product['hero_image'],
-            'dynamicBgClass' => $product['dynamicBgClass'],
-            'productNameBgTextType' => $product['productNameBgTextType']
+            'id'                    => $product_data['id'], // <<< --- DÜZELTME BURADA! Artık $product_data içindeki 'id'yi alıyoruz.
+            'name'                  => $product_data['name'],
+            'image'                 => $product_data['hero_image'],
+            'dynamicBgClass'        => $product_data['dynamicBgClass'],
+            'productNameBgTextType' => $product_data['productNameBgTextType']
         ];
     }
 }
@@ -83,10 +84,6 @@ function get_cart_count() {
                 if (is_array($item_data) && isset($item_data['quantity'])) {
                     $cart_items_count += (int)$item_data['quantity'];
                 }
-                // If your cart structure is simpler, like $cart[product_id] = quantity
-                // else if (is_numeric($item_data)) {
-                //    $cart_items_count += (int)$item_data;
-                // }
             }
         }
     }
