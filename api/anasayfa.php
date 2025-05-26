@@ -1,3 +1,8 @@
+userIcon.style.borderColor = '#fff';
+userIcon.style.color = '#fff';
+userIcon.style.borderColor = '';
+userIcon.style.color = '';
+
 <?php
 session_start();
 include 'products_data.php'; // Ürün verilerini ve fonksiyonları dahil et
@@ -447,13 +452,55 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
                 <a href="#asikzade-products" class="nav-page-link-button">ÜRÜNLERİ KEŞFET</a> <!-- Bu link hala kart listesine gidebilir -->
             </div>
             <div class="user-actions-group">
-                <a href="login.php" class="nav-user-icon" aria-label="Kullanıcı Girişi"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></a>
-                <a href="sepet.php" class="nav-cart-icon" aria-label="Sepetim">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-
+                <a href="login.php" class="nav-user-icon" aria-label="Kullanıcı Girişi"
+                   <?php
+                   // Eğer body'de koyu arka plan varsa (ör: bg-product3-custom), inline style ile ikonları beyaz yap
+                   $darkBgClasses = ['bg-product3-custom'];
+                   $bodyClass = isset($_SERVER['REQUEST_URI']) ? '' : ''; // PHP'den body class okunamaz, JS ile yapılır
+                   // PHP ile doğrudan body class kontrolü mümkün değil, JS ile yapılacak
+                   ?>
+                ><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></a>
+                <a href="sepet.php" class="nav-cart-icon" aria-label="Sepetim"
+                   ><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
                 <?php if ($cart_item_count > 0): ?><span class="cart-badge"><?php echo $cart_item_count; ?></span><?php endif; ?>
                 </a>
             </div>
+            <script>
+            // Arka plan koyu ise ikonları beyaz yap
+            (function() {
+                function updateNavIconsForBg() {
+                    var darkBgClasses = ['bg-product3-custom'];
+                    var body = document.body;
+                    var userIcon = document.querySelector('.nav-user-icon');
+                    var cartIcon = document.querySelector('.nav-cart-icon');
+                    var isDark = darkBgClasses.some(function(cls) { return body.classList.contains(cls); });
+                    if (userIcon && cartIcon) {
+                        if (isDark) {
+                            cartIcon.style.borderColor = '#fff';
+                            cartIcon.style.color = '#fff';
+                        } else {
+                            cartIcon.style.borderColor = '';
+                            cartIcon.style.color = '';
+                        }
+                    }
+                }
+                // İlk yüklemede ve ürün değişiminde çalıştır
+                document.addEventListener('DOMContentLoaded', updateNavIconsForBg);
+                // Hero ürün değişiminde de çalışmalı
+                window.addEventListener('load', function() {
+                    if (typeof showMawaProduct === 'function') {
+                        var origShowMawaProduct = showMawaProduct;
+                        window.showMawaProduct = function(idx) {
+                            origShowMawaProduct(idx);
+                            setTimeout(updateNavIconsForBg, 10);
+                        };
+                    }
+                });
+                // Ayrıca body class değişiminde de tetiklenmeli
+                var observer = new MutationObserver(updateNavIconsForBg);
+                observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+            })();
+            </script>
         </nav>
     </header>
 
@@ -516,7 +563,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
                             <img src="<?php echo htmlspecialchars($product_data['image']); ?>" alt="<?php echo htmlspecialchars($product_data['name']); ?>" class="main-product-image">
                             <?php if (!empty($product_data['badge_image'])): ?>
                             <div class="product-detail-block-badge">
-                                <img src="https://i.imgur.com/RChLL2F.png" alt="Ürün Rozeti" style="width:110px; height:110px; max-width:none; max-height:none;">
+                                <img src="https://i.imgur.com/RChLL2F.png" alt="Ürün Rozeti" style="width:180px; height:180px; max-width:none; max-height:none; position:absolute; left:-70px;">
                             </div>
                             <?php endif; ?>
                         </div>
