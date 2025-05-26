@@ -467,7 +467,7 @@ if (isset($products) && is_array($products)) {
             <div class="promo-image promo-image-2"><img src="https://i.imgur.com/KY4PF0E.png" alt="Aşıkzade Yaşam Tarzı 1"></div>
             <div class="promo-image promo-image-3"><img src="https://i.imgur.com/rnpICDG.png" alt="Aşıkzade Doğal Ürün 2"></div>
             <div class="promo-image promo-image-4"><img src="https://i.imgur.com/Mufz5KT.png" alt="Aşıkzade Yaşam Tarzı 2"></div>
-            <div class="insta-promo-content"><h2 class="insta-promo-title">SOFRANA İLHAM, <br>AKIŞINA RENK KAT!</h2></div>
+            <div class="insta-promo-content"><h2 class="insta-promo-title">ÖZÜNDEN GELEN <br>ENERJİ</h2></div>
         </section>
 
         <section class="section" id="asikzade-products">
