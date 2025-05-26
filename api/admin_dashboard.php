@@ -161,99 +161,11 @@ foreach($status_order as $status_key) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Paneli - Sipariş Yönetimi</title>
-    <!-- Kaldırıldı: <link rel="stylesheet" href="/gecis_animasyonlari.css"> -->
     <style>
-        /* === GENEL AYARLAR (Sizin Mevcut Değişkenleriniz ve Global Stilleriniz) === */
+        /* Kullanıcının verdiği CSS stilleri buraya gelecek (bir önceki yanıtta vardı) */
         :root { --asikzade-content-bg: #fef6e6; --asikzade-green: #8ba86d; --asikzade-dark-green: #6a8252; --asikzade-dark-text: #2d3e2a; --asikzade-light-text: #fdfcf8; --asikzade-gray: #7a7a7a; --asikzade-border: #e5e5e5; --asikzade-red: #c0392b; --admin-header-height: 70px; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; }
-        
-        /* === BODY STİLLERİ VE SAYFA AÇILIŞ ANİMASYONU İÇİN EKLENENLER === */
-        /* Bu kısım, mevcut body stilinizle birleştirilmiştir */
-        body { 
-            opacity: 0; /* Sayfa yüklenirken başlangıçta gizli */
-            animation: sayfaIceriginiGoster 0.5s ease-out 0.6s forwards; /* Açılış animasyonundan sonra body'yi göster */
-            margin: 0; /* Tarayıcı varsayılan margin'lerini sıfırla */
-
-            background-color: var(--asikzade-content-bg); 
-            color: var(--asikzade-dark-text); 
-            line-height: 1.6; 
-            display: flex; 
-            flex-direction: column; 
-            min-height: 100vh; 
-        }
-
-        /* === SAYFA AÇILIŞ ANİMASYONU İÇİN KATMAN === */
-        #sayfa-acilis-katmani {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: var(--asikzade-content-bg, #fef6e6); /* Geçiş rengi */
-            z-index: 9999;
-            clip-path: circle(150% at 50% 50%); /* Başlangıçta dolu */
-            animation: daireIleSayfaAc 0.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
-        }
-
-        @keyframes daireIleSayfaAc { /* Sayfa açılırken daire küçülür */
-            0% {
-                clip-path: circle(150% at 50% 50%);
-                opacity: 1;
-            }
-            99% {
-                clip-path: circle(0% at 50% 50%);
-                opacity: 1;
-            }
-            100% {
-                clip-path: circle(0% at 50% 50%);
-                opacity: 0;
-                visibility: hidden;
-                pointer-events: none; /* Önemli: Tıklamaları engellememesi için */
-            }
-        }
-
-        @keyframes sayfaIceriginiGoster { /* Body içeriğini gösterir */
-            to {
-                opacity: 1;
-            }
-        }
-
-        /* === SAYFA KAPANIŞ ANİMASYONU İÇİN KATMAN (YENİ) === */
-        #sayfa-kapanis-katmani {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: var(--asikzade-content-bg, #fef6e6); /* AÇILIŞ İLE AYNI RENK OLMALI! */
-            z-index: 10000; /* Açılış katmanından da üstte olmalı ki onu kapatsın */
-            clip-path: circle(0% at 50% 50%); /* Başlangıçta görünmez/küçük */
-            opacity: 0; /* Başlangıçta tamamen saydam */
-            visibility: hidden; /* Başlangıçta gizli */
-            pointer-events: none; /* Tıklamaları engellemesin */
-        }
-
-        /* Kapanış animasyonunu tetikleyecek class */
-        #sayfa-kapanis-katmani.aktif {
-            opacity: 1;
-            visibility: visible;
-            pointer-events: auto; /* Animasyon sırasında tıklamaları yakalasın */
-            animation: daireIleSayfaKapat 0.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
-            /* Süreyi isteğinize göre ayarlayın */
-        }
-
-        @keyframes daireIleSayfaKapat { /* Sayfa kapanırken daire büyür */
-            0% {
-                clip-path: circle(0% at 50% 50%);
-                opacity: 1; /* Animasyon başladığında görünür olmalı */
-            }
-            100% {
-                clip-path: circle(150% at 50% 50%);
-                opacity: 1;
-            }
-        }
-        
-        /* === MEVCUT DİĞER CSS STİLLERİNİZ (Değiştirilmedi) === */
+        body { background-color: var(--asikzade-content-bg); color: var(--asikzade-dark-text); line-height: 1.6; display: flex; flex-direction: column; min-height: 100vh; }
         .header { position: fixed; top: 0; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 15px 40px; z-index: 1000; background: rgba(254, 246, 230, 0.97); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 2px 5px rgba(0,0,0,0.08); height: var(--admin-header-height); }
         .logo-container { display: flex; align-items: center; gap: 10px; text-decoration: none; } .logo-container img { height: 45px; } .logo-text { font-size: 20px; font-weight: 600; color: var(--asikzade-dark-text); }
         .admin-header-nav { display: flex; align-items: center; gap: 25px; } .admin-header-nav .welcome-text { font-size: 0.9rem; color: var(--asikzade-gray); } .admin-header-nav .logout-link { color: var(--asikzade-red); text-decoration: none; font-weight: 500; font-size: 0.9rem; padding: 6px 12px; border: 1px solid var(--asikzade-red); border-radius: 20px; transition: all 0.3s ease; } .admin-header-nav .logout-link:hover { background-color: var(--asikzade-red); color: var(--asikzade-light-text); }
@@ -275,9 +187,6 @@ foreach($status_order as $status_key) {
     </style>
 </head>
 <body>
-     <!-- Buradaki ID düzeltildi: "sayfa-gecis-katmani" yerine "sayfa-acilis-katmani" -->
-     <div id="sayfa-acilis-katmani"></div>
-      <div id="sayfa-kapanis-katmani"></div>
     <header class="header">
         <a href="index.php" class="logo-container">
             <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo">
@@ -423,7 +332,7 @@ foreach($status_order as $status_key) {
                     <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                         <?php if ($i == $current_page): ?>
                             <span class="current"><?php echo $i; ?></span>
-                        <?心态 normal; else: ?>
+                        <?php else: ?>
                             <a href="<?php echo 'admin_dashboard.php?' . http_build_query(array_merge($current_get_params, ['page' => $i])); ?>"><?php echo $i; ?></a>
                         <?php endif; ?>
                     <?php endfor; ?>
@@ -570,6 +479,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                 detailsHtml += `<tr>
                                     <td><img src="${imageUrl}" alt="${item.urun_adi || 'Ürün'}" class="product-thumbnail"></td>
+                                    <td>${item.urun_adi || 'Bilinmeyen Ürün'}</td>
                                     <td>${item.miktar || 0}</td>
                                     <td>${item.birim_fiyat ? parseFloat(item.birim_fiyat).toFixed(2).replace('.', ',') : '0,00'} TL</td>
                                     <td>${item.ara_toplam ? parseFloat(item.ara_toplam).toFixed(2).replace('.', ',') : '0,00'} TL</td>
@@ -587,60 +497,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.error('Admin Sipariş detayları çekilirken hata:', error);
                 });
         });
-    });
-});
-document.addEventListener('DOMContentLoaded', () => {
-    const kapanisKatmani = document.getElementById('sayfa-kapanis-katmani');
-    const kapanisAnimasyonSuresi = 600; // CSS'teki animation-duration ile aynı olmalı (ms cinsinden)
-
-    // Sadece aynı domaindeki ve yeni sekmede açılmayan linkleri yakala
-    document.querySelectorAll('a[href]').forEach(link => {
-        // Harici linkler, # ile başlayan anchor linkler veya _blank hedefleri hariç
-        if (link.hostname === window.location.hostname &&
-            !link.href.startsWith(window.location.origin + window.location.pathname + '#') && // Sayfa içi anchor değilse
-            link.target !== '_blank' &&
-            !link.href.startsWith('mailto:') &&
-            !link.href.startsWith('tel:')) {
-
-            link.addEventListener('click', function(event) {
-                event.preventDefault(); // Varsayılan link davranışını engelle
-                const hedefUrl = this.href;
-
-                // Kapanış animasyonunu başlat
-                kapanisKatmani.classList.add('aktif');
-
-                // Animasyon bittikten sonra sayfayı yönlendir
-                setTimeout(() => {
-                    window.location.href = hedefUrl;
-                }, kapanisAnimasyonSuresi);
-            });
-        }
-    });
-
-    // Tarayıcının geri/ileri butonları için (bfcache - back/forward cache)
-    // Eğer sayfa bfcache'den yükleniyorsa, açılış animasyonunu tekrar oynatmayabilir.
-    // Bu durumda katmanı manuel olarak gizleyebiliriz.
-    // Bu kısım daha karmaşık senaryolar için ve her zaman %100 çalışmayabilir.
-    window.addEventListener('pageshow', function(event) {
-        const acilisKatmani = document.getElementById('sayfa-acilis-katmani');
-        if (event.persisted) { // Sayfa bfcache'den yüklendiyse
-            // Açılış katmanının animasyonu zaten oynamış olabilir,
-            // bu yüzden manuel olarak gizleyebiliriz veya body'yi direkt görünür yapabiliriz.
-            if (acilisKatmani) {
-                acilisKatmani.style.opacity = '0';
-                acilisKatmani.style.visibility = 'hidden';
-                acilisKatmani.style.pointerEvents = 'none';
-            }
-            document.body.style.opacity = '1'; // Body'yi hemen göster
-            // Gerekirse kapanış katmanını da sıfırla
-            if (kapanisKatmani && kapanisKatmani.classList.contains('aktif')) {
-                kapanisKatmani.classList.remove('aktif');
-                // Stilini CSS'teki başlangıç durumuna getirebiliriz.
-                kapanisKatmani.style.clipPath = 'circle(0% at 50% 50%)';
-                kapanisKatmani.style.opacity = '0';
-                kapanisKatmani.style.visibility = 'hidden';
-            }
-        }
     });
 });
 </script>
