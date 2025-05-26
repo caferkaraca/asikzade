@@ -6,12 +6,6 @@ error_reporting(E_ALL);
 
 ob_start(); // Çıktı tamponlamasını başlat
 
-// Cookie varsa dashboard'a yönlendir
-if (isset($_COOKIE['asikzade_user_session'])) {
-    header('Location: /dashboard.php'); // KÖK DİZİNDE OLDUĞUNU VARSAYIYORUM
-    exit;
-}
-
 // config.php'yi dahil et (Supabase fonksiyonları için)
 // YOLUNU KONTROL EDİN! Eğer dashboard.php api/ içindeyse ve config.php kökteyse:
 // require_once __DIR__ . '/../config.php';
@@ -153,10 +147,9 @@ if ($user_id_for_query) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kontrol Paneli - AŞIKZADE</title>
-    <!-- Buradaki link kaldırıldı ve CSS'i <style> içine taşındı. -->
-    <!-- <link rel="stylesheet" href="/gecis_animasyonlari.css"> --> 
     <style>
-        /* === GENEL AYARLAR (Sizin Mevcut Değişkenleriniz ve Global Stilleriniz) === */
+        /* CSS Stilleriniz (önceki mesajdaki gibi) buraya gelecek */
+        /* ... */
         :root {
             --asikzade-content-bg: #fef6e6;
             --asikzade-green: #8ba86d;
@@ -174,95 +167,10 @@ if ($user_id_for_query) {
             --message-error-border: #f5c6cb;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; }
-        
-        /* === BODY STİLLERİ VE SAYFA AÇILIŞ ANİMASYONU İÇİN EKLENENLER === */
-        /* Bu kısım, mevcut body stilinizle birleştirilmiştir. */
         body {
-            opacity: 0; /* Sayfa yüklenirken başlangıçta gizli */
-            animation: sayfaIceriginiGoster 0.5s ease-out 0.6s forwards; /* Açılış animasyonundan sonra body'yi göster */
-            margin: 0; /* Tarayıcı varsayılan margin'lerini sıfırla */
-
-            background-color: var(--asikzade-content-bg); 
-            color: var(--asikzade-dark-text);
-            line-height: 1.6; 
-            display: flex; 
-            flex-direction: column; 
-            min-height: 100vh;
+            background-color: var(--asikzade-content-bg); color: var(--asikzade-dark-text);
+            line-height: 1.6; display: flex; flex-direction: column; min-height: 100vh;
         }
-        
-        /* === SAYFA AÇILIŞ ANİMASYONU İÇİN KATMAN === */
-        #sayfa-acilis-katmani {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: var(--asikzade-content-bg, #fef6e6); /* Geçiş rengi */
-            z-index: 9999;
-            clip-path: circle(150% at 50% 50%); /* Başlangıçta dolu */
-            animation: daireIleSayfaAc 0.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
-        }
-
-        @keyframes daireIleSayfaAc { /* Sayfa açılırken daire küçülür */
-            0% {
-                clip-path: circle(150% at 50% 50%);
-                opacity: 1;
-            }
-            99% {
-                clip-path: circle(0% at 50% 50%);
-                opacity: 1;
-            }
-            100% {
-                clip-path: circle(0% at 50% 50%);
-                opacity: 0;
-                visibility: hidden;
-                pointer-events: none; /* Önemli: Tıklamaları engellememesi için */
-            }
-        }
-
-        @keyframes sayfaIceriginiGoster { /* Body içeriğini gösterir */
-            to {
-                opacity: 1;
-            }
-        }
-
-        /* === SAYFA KAPANIŞ ANİMASYONU İÇİN KATMAN (YENİ) === */
-        #sayfa-kapanis-katmani {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: var(--asikzade-content-bg, #fef6e6); /* AÇILIŞ İLE AYNI RENK OLMALI! */
-            z-index: 10000; /* Açılış katmanından da üstte olmalı ki onu kapatsın */
-            clip-path: circle(0% at 50% 50%); /* Başlangıçta görünmez/küçük */
-            opacity: 0; /* Başlangıçta tamamen saydam */
-            visibility: hidden; /* Başlangıçta gizli */
-            pointer-events: none; /* Tıklamaları engellemesin */
-        }
-
-        /* Kapanış animasyonunu tetikleyecek class */
-        #sayfa-kapanis-katmani.aktif {
-            opacity: 1;
-            visibility: visible;
-            pointer-events: auto; /* Animasyon sırasında tıklamaları yakalasın */
-            animation: daireIleSayfaKapat 0.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
-            /* Süreyi isteğinize göre ayarlayın */
-        }
-
-        @keyframes daireIleSayfaKapat { /* Sayfa kapanırken daire büyür */
-            0% {
-                clip-path: circle(0% at 50% 50%);
-                opacity: 1; /* Animasyon başladığında görünür olmalı */
-            }
-            100% {
-                clip-path: circle(150% at 50% 50%);
-                opacity: 1;
-            }
-        }
-
-        /* === MEVCUT DİĞER CSS STİLLERİNİZ (Değiştirilmedi) === */
-        /* Bu kısım, sizin orijinal CSS'inizden kopyalanmıştır. */
         .header {
             position: fixed; top: 0; width: 100%; display: flex; justify-content: space-between; align-items: center;
             padding: 15px 50px; z-index: 1000; background: rgba(254, 246, 230, 0.95);
@@ -452,10 +360,6 @@ if ($user_id_for_query) {
     </style>
 </head>
 <body>
-     <!-- Sayfa Açılış/Kapanış Katmanları (ID'ler düzeltildi) -->
-     <div id="sayfa-acilis-katmani"></div>
-     <div id="sayfa-kapanis-katmani"></div>
-
     <header class="header" id="mainHeader">
         <a href="/index.php" class="logo-container"> <!-- YOLU / İLE BAŞLATIN -->
             <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo">
@@ -483,7 +387,7 @@ if ($user_id_for_query) {
                 <a href="/sepet.php" class="nav-cart-icon" aria-label="Sepetim"> <!-- YOLU / İLE BAŞLATIN -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 0 0 0 2-1.61L23 6H6"></path>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                     </svg>
                     <?php if ($cart_item_count > 0): ?>
                         <span class="cart-badge"><?php echo htmlspecialchars($cart_item_count); ?></span>
@@ -773,6 +677,7 @@ if ($user_id_for_query) {
                                     
                                     detailsHtml += `<tr>
                                         <td><img src="${imageUrl}" alt="${item.urun_adi ? String(item.urun_adi).substring(0,50) : 'Ürün'}" class="product-thumbnail"></td>
+                                        <td>${item.urun_adi || 'Bilinmeyen Ürün'}</td>
                                         <td>${item.miktar || 0}</td>
                                         <td>${item.birim_fiyat ? parseFloat(item.birim_fiyat).toFixed(2).replace('.', ',') : '0,00'} TL</td>
                                         <td>${item.ara_toplam ? parseFloat(item.ara_toplam).toFixed(2).replace('.', ',') : '0,00'} TL</td>
@@ -792,60 +697,6 @@ if ($user_id_for_query) {
             });
         });
     });
-    document.addEventListener('DOMContentLoaded', () => {
-    const kapanisKatmani = document.getElementById('sayfa-kapanis-katmani');
-    const kapanisAnimasyonSuresi = 600; // CSS'teki animation-duration ile aynı olmalı (ms cinsinden)
-
-    // Sadece aynı domaindeki ve yeni sekmede açılmayan linkleri yakala
-    document.querySelectorAll('a[href]').forEach(link => {
-        // Harici linkler, # ile başlayan anchor linkler veya _blank hedefleri hariç
-        if (link.hostname === window.location.hostname &&
-            !link.href.startsWith(window.location.origin + window.location.pathname + '#') && // Sayfa içi anchor değilse
-            link.target !== '_blank' &&
-            !link.href.startsWith('mailto:') &&
-            !link.href.startsWith('tel:')) {
-
-            link.addEventListener('click', function(event) {
-                event.preventDefault(); // Varsayılan link davranışını engelle
-                const hedefUrl = this.href;
-
-                // Kapanış animasyonunu başlat
-                kapanisKatmani.classList.add('aktif');
-
-                // Animasyon bittikten sonra sayfayı yönlendir
-                setTimeout(() => {
-                    window.location.href = hedefUrl;
-                }, kapanisAnimasyonSuresi);
-            });
-        }
-    });
-
-    // Tarayıcının geri/ileri butonları için (bfcache - back/forward cache)
-    // Eğer sayfa bfcache'den yükleniyorsa, açılış animasyonunu tekrar oynatmayabilir.
-    // Bu durumda katmanı manuel olarak gizleyebiliriz.
-    // Bu kısım daha karmaşık senaryolar için ve her zaman %100 çalışmayabilir.
-    window.addEventListener('pageshow', function(event) {
-        const acilisKatmani = document.getElementById('sayfa-acilis-katmani');
-        if (event.persisted) { // Sayfa bfcache'den yüklendiyse
-            // Açılış katmanının animasyonu zaten oynamış olabilir,
-            // bu yüzden manuel olarak gizleyebiliriz veya body'yi direkt görünür yapabiliriz.
-            if (acilisKatmani) {
-                acilisKatmani.style.opacity = '0';
-                acilisKatmani.style.visibility = 'hidden';
-                acilisKatmani.style.pointerEvents = 'none';
-            }
-            document.body.style.opacity = '1'; // Body'yi hemen göster
-            // Gerekirse kapanış katmanını da sıfırla
-            if (kapanisKatmani && kapanisKatmani.classList.contains('aktif')) {
-                kapanisKatmani.classList.remove('aktif');
-                // Stilini CSS'teki başlangıç durumuna getirebiliriz.
-                kapanisKatmani.style.clipPath = 'circle(0% at 50% 50%)';
-                kapanisKatmani.style.opacity = '0';
-                kapanisKatmani.style.visibility = 'hidden';
-            }
-        }
-    });
-});
 </script>
 </body>
 </html>
