@@ -153,7 +153,8 @@ if ($user_id_for_query) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kontrol Paneli - AŞIKZADE</title>
-    <!-- Kaldırıldı: <link rel="stylesheet" href="/gecis_animasyonlari.css"> -->
+    <!-- Buradaki link kaldırıldı ve CSS'i <style> içine taşındı. -->
+    <!-- <link rel="stylesheet" href="/gecis_animasyonlari.css"> --> 
     <style>
         /* === GENEL AYARLAR (Sizin Mevcut Değişkenleriniz ve Global Stilleriniz) === */
         :root {
@@ -175,14 +176,18 @@ if ($user_id_for_query) {
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; }
         
         /* === BODY STİLLERİ VE SAYFA AÇILIŞ ANİMASYONU İÇİN EKLENENLER === */
-        /* Bu kısım, mevcut body stilinizle birleştirilmiştir */
+        /* Bu kısım, mevcut body stilinizle birleştirilmiştir. */
         body {
             opacity: 0; /* Sayfa yüklenirken başlangıçta gizli */
             animation: sayfaIceriginiGoster 0.5s ease-out 0.6s forwards; /* Açılış animasyonundan sonra body'yi göster */
             margin: 0; /* Tarayıcı varsayılan margin'lerini sıfırla */
 
-            background-color: var(--asikzade-content-bg); color: var(--asikzade-dark-text);
-            line-height: 1.6; display: flex; flex-direction: column; min-height: 100vh;
+            background-color: var(--asikzade-content-bg); 
+            color: var(--asikzade-dark-text);
+            line-height: 1.6; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh;
         }
         
         /* === SAYFA AÇILIŞ ANİMASYONU İÇİN KATMAN === */
@@ -257,6 +262,7 @@ if ($user_id_for_query) {
         }
 
         /* === MEVCUT DİĞER CSS STİLLERİNİZ (Değiştirilmedi) === */
+        /* Bu kısım, sizin orijinal CSS'inizden kopyalanmıştır. */
         .header {
             position: fixed; top: 0; width: 100%; display: flex; justify-content: space-between; align-items: center;
             padding: 15px 50px; z-index: 1000; background: rgba(254, 246, 230, 0.95);
@@ -446,9 +452,10 @@ if ($user_id_for_query) {
     </style>
 </head>
 <body>
-     <!-- Buradaki ID düzeltildi: "sayfa-gecis-katmani" yerine "sayfa-acilis-katmani" -->
+     <!-- Sayfa Açılış/Kapanış Katmanları (ID'ler düzeltildi) -->
      <div id="sayfa-acilis-katmani"></div>
-      <div id="sayfa-kapanis-katmani"></div>
+     <div id="sayfa-kapanis-katmani"></div>
+
     <header class="header" id="mainHeader">
         <a href="/index.php" class="logo-container"> <!-- YOLU / İLE BAŞLATIN -->
             <img src="https://i.imgur.com/rdZuONP.png" alt="Aşıkzade Logo">
