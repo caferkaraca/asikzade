@@ -147,7 +147,7 @@ if(isset($_GET['error_msg_odeme'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ödeme - AŞIKZADE</title>
-    <link rel="stylesheet" href="gecis_animasyonlari.css">
+ <link rel="stylesheet" href="/gecis_animasyonlari.css">
     <style>
         :root {
             --asikzade-content-bg: #fef6e6;

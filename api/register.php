@@ -16,7 +16,7 @@ unset($_SESSION['error_message'], $_SESSION['success_message']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kayıt Ol - AŞIKZADE</title>
-    <link rel="stylesheet" href="gecis_animasyonlari.css">
+    <link rel="stylesheet" href="/gecis_animasyonlari.css">
     <style>
         /* Önceki cevaptaki tüm CSS stilleri buraya gelecek */
         /* ... (Stilleri buraya kopyalayın) ... */

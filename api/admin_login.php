@@ -54,7 +54,7 @@ if (isset($_COOKIE['asikzade_admin_session'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Girişi - AŞIKZADE</title>
-    <link rel="stylesheet" href="gecis_animasyonlari.css">
+  <link rel="stylesheet" href="/gecis_animasyonlari.css">
     <style>
         /* Stil kodlarınız aynı kalabilir */
         :root {

@@ -147,7 +147,7 @@ if ($user_id_for_query) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kontrol Paneli - AŞIKZADE</title>
-    <link rel="stylesheet" href="gecis_animasyonlari.css">
+    <link rel="stylesheet" href="/gecis_animasyonlari.css">
     <style>
         /* CSS Stilleriniz (önceki mesajdaki gibi) buraya gelecek */
         /* ... */

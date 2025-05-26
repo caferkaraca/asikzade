@@ -36,7 +36,7 @@ if (isset($_COOKIE['asikzade_cart'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AŞIKZADE - Sepetim</title>
-    <link rel="stylesheet" href="gecis_animasyonlari.css">
+    <link rel="stylesheet" href="/gecis_animasyonlari.css">
 
 
     <!-- index.php'deki temel CSS değişkenlerini ve genel stilleri buraya alabilir veya ayrı bir CSS'e taşıyabilirsiniz -->

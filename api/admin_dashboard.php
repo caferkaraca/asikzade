@@ -161,7 +161,7 @@ foreach($status_order as $status_key) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Paneli - Sipariş Yönetimi</title>
-    <link rel="stylesheet" href="gecis_animasyonlari.css">
+    <link rel="stylesheet" href="/gecis_animasyonlari.css">
     <style>
         /* Kullanıcının verdiği CSS stilleri buraya gelecek (bir önceki yanıtta vardı) */
         :root { --asikzade-content-bg: #fef6e6; --asikzade-green: #8ba86d; --asikzade-dark-green: #6a8252; --asikzade-dark-text: #2d3e2a; --asikzade-light-text: #fdfcf8; --asikzade-gray: #7a7a7a; --asikzade-border: #e5e5e5; --asikzade-red: #c0392b; --admin-header-height: 70px; }

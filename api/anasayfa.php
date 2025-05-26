@@ -9,7 +9,7 @@ $cart_item_count = get_cart_count(); // Sepetteki ürün sayısını al
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AŞIKZADE - Doğal Lezzetler</title>
-    <link rel="stylesheet" href="gecis_animasyonlari.css">
+   <link rel="stylesheet" href="/gecis_animasyonlari.css">
     <style>
         :root {
             --product-bg-text-light: rgba(255, 255, 255, 0.18);
